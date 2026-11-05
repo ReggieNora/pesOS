@@ -1,0 +1,9 @@
+{
+  "name": "TingiPOS — Sari-Sari Store POS",
+  "short_name": "TingiPOS",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0F15",
+  "theme_color": "#00F2FE",
+  "orientation": "portrait"
+}

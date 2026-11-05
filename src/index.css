@@ -1,0 +1,449 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* MANDATORY: Apply color-scheme to :root or html for viewport-wide theming */
+  :root {
+    /* Square-Style Flat Modern Retail Palette */
+    /* Light Mode */
+    --bg-background-light: #F4F5F7;
+    --bg-surface-light: #FFFFFF;
+    --bg-surface-muted-light: #F8FAFC;
+    --border-theme-light: #E2E8F0;
+    --text-primary-light: #111827;
+    --text-muted-light: #64748B;
+    --color-emerald-btn-light: #006AFF; /* Square-style Vibrant Accent */
+    --color-amber-badge-light: #D97706;
+    --backdrop-overlay-light: rgba(15, 23, 42, 0.4);
+
+    /* Dark Mode */
+    --bg-background-dark: #0F172A;
+    --bg-surface-dark: #1E293B;
+    --bg-surface-muted-dark: #090E1A;
+    --border-theme-dark: #334155;
+    --text-primary-dark: #F8FAFC;
+    --text-muted-dark: #94A3B8;
+    --color-emerald-btn-dark: #2563EB;
+    --color-amber-badge-dark: #F59E0B;
+    --backdrop-overlay-dark: rgba(2, 6, 23, 0.75);
+
+    /* RGB channel triplets for Light Mode (Default) */
+    --bg-background-rgb: 244 245 247;
+    --bg-surface-rgb: 255 255 255;
+    --bg-surface-muted-rgb: 248 250 252;
+    --border-theme-rgb: 226 232 240;
+    --text-primary-rgb: 17 24 39;        /* #111827 gray-900 */
+    --text-muted-rgb: 100 116 139;       /* #64748B slate-500 */
+    --color-emerald-btn-rgb: 0 106 255;
+    --text-emerald-rgb: 0 106 255;       /* #006AFF primary price & charge */
+    --color-amber-badge-rgb: 217 119 6;
+    --text-amber-rgb: 180 83 9;
+
+    /* Clean Flat Card & Dock Parameters (Light Mode) */
+    --glass-card-bg: #FFFFFF;
+    --glass-dock-bg: #FFFFFF;
+    --glass-modal-bg: #FFFFFF;
+    --glass-inset-bg: #F8FAFC;
+    --glass-border: #E2E8F0;
+    --glass-border-Subtle: #CBD5E1;
+    --glass-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    --glass-dock-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+
+    /* Solid Clean Action Buttons (Light Mode) */
+    --btn-emerald-bg: #006AFF;
+    --btn-emerald-border: #006AFF;
+    --btn-emerald-text: #FFFFFF;
+    --btn-emerald-subtext: #E0E7FF;
+
+    --btn-amber-bg: #D97706;
+    --btn-amber-border: #D97706;
+    --btn-amber-text: #FFFFFF;
+    --btn-amber-subtext: #FEF3C7;
+
+    /* Fallback defaults (Light) for browsers without light-dark() support */
+    --bg-background: var(--bg-background-light);
+    --bg-surface: var(--bg-surface-light);
+    --bg-surface-muted: var(--bg-surface-muted-light);
+    --border-theme: var(--border-theme-light);
+    --text-primary: var(--text-primary-light);
+    --text-muted: var(--text-muted-light);
+    --color-emerald-btn: var(--color-emerald-btn-light);
+    --color-amber-badge: var(--color-amber-badge-light);
+    --backdrop-overlay: var(--backdrop-overlay-light);
+
+    /* MANDATORY: Fallback for browsers without light-dark support */
+    @media (prefers-color-scheme: dark) {
+      --bg-background: var(--bg-background-dark);
+      --bg-surface: var(--bg-surface-dark);
+      --bg-surface-muted: var(--bg-surface-muted-dark);
+      --border-theme: var(--border-theme-dark);
+      --text-primary: var(--text-primary-dark);
+      --text-muted: var(--text-muted-dark);
+      --color-emerald-btn: var(--color-emerald-btn-dark);
+      --color-amber-badge: var(--color-amber-badge-dark);
+      --backdrop-overlay: var(--backdrop-overlay-dark);
+
+      --bg-background-rgb: 15 23 42;
+      --bg-surface-rgb: 30 41 59;
+      --bg-surface-muted-rgb: 9 14 26;
+      --border-theme-rgb: 51 65 85;
+      --text-primary-rgb: 248 250 252;
+      --text-muted-rgb: 148 163 184;
+      --color-emerald-btn-rgb: 37 99 235;
+      --text-emerald-rgb: 96 165 250;
+      --color-amber-badge-rgb: 245 158 11;
+      --text-amber-rgb: 251 191 36;
+
+      --glass-card-bg: #1E293B;
+      --glass-dock-bg: #1E293B;
+      --glass-modal-bg: #1E293B;
+      --glass-inset-bg: #0F172A;
+      --glass-border: #334155;
+      --glass-border-Subtle: #475569;
+      --glass-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+      --glass-dock-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+
+      --btn-emerald-bg: #2563EB;
+      --btn-emerald-border: #2563EB;
+      --btn-emerald-text: #FFFFFF;
+      --btn-emerald-subtext: #DBEAFE;
+
+      --btn-amber-bg: #D97706;
+      --btn-amber-border: #D97706;
+      --btn-amber-text: #FFFFFF;
+      --btn-amber-subtext: #FEF3C7;
+    }
+
+    /* MANDATORY: Automatically adapt native UI to user system preferences */
+    color-scheme: light dark;
+    accent-color: var(--color-emerald-btn);
+
+    &:has(> head > meta[name="color-scheme"][content="dark"]) {
+      color-scheme: dark;
+    }
+    &:has(> head > meta[name="color-scheme"][content="light"]) {
+      color-scheme: light;
+    }
+
+    @supports (color: light-dark(white, black)) {
+      --bg-background: light-dark(var(--bg-background-light), var(--bg-background-dark));
+      --bg-surface: light-dark(var(--bg-surface-light), var(--bg-surface-dark));
+      --bg-surface-muted: light-dark(var(--bg-surface-muted-light), var(--bg-surface-muted-dark));
+      --border-theme: light-dark(var(--border-theme-light), var(--border-theme-dark));
+      --text-primary: light-dark(var(--text-primary-light), var(--text-primary-dark));
+      --text-muted: light-dark(var(--text-muted-light), var(--text-muted-dark));
+      --color-emerald-btn: light-dark(var(--color-emerald-btn-light), var(--color-emerald-btn-dark));
+      --color-amber-badge: light-dark(var(--color-amber-badge-light), var(--color-amber-badge-dark));
+      --backdrop-overlay: light-dark(var(--backdrop-overlay-light), var(--backdrop-overlay-dark));
+    }
+  }
+
+  /* Explicit class overrides (.dark / .light) synced with color-scheme */
+  :root.dark {
+    color-scheme: dark;
+    --bg-background: var(--bg-background-dark);
+    --bg-surface: var(--bg-surface-dark);
+    --bg-surface-muted: var(--bg-surface-muted-dark);
+    --border-theme: var(--border-theme-dark);
+    --text-primary: var(--text-primary-dark);
+    --text-muted: var(--text-muted-dark);
+    --color-emerald-btn: var(--color-emerald-btn-dark);
+    --color-amber-badge: var(--color-amber-badge-dark);
+    --backdrop-overlay: var(--backdrop-overlay-dark);
+
+    --bg-background-rgb: 15 23 42;
+    --bg-surface-rgb: 30 41 59;
+    --bg-surface-muted-rgb: 9 14 26;
+    --border-theme-rgb: 51 65 85;
+    --text-primary-rgb: 248 250 252;
+    --text-muted-rgb: 148 163 184;
+    --color-emerald-btn-rgb: 37 99 235;
+    --text-emerald-rgb: 96 165 250;
+    --color-amber-badge-rgb: 245 158 11;
+    --text-amber-rgb: 251 191 36;
+
+    --glass-card-bg: #1E293B;
+    --glass-dock-bg: #1E293B;
+    --glass-modal-bg: #1E293B;
+    --glass-inset-bg: #0F172A;
+    --glass-border: #334155;
+    --glass-border-Subtle: #475569;
+    --glass-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+    --glass-dock-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+
+    --btn-emerald-bg: #2563EB;
+    --btn-emerald-border: #2563EB;
+    --btn-emerald-text: #FFFFFF;
+    --btn-emerald-subtext: #DBEAFE;
+
+    --btn-amber-bg: #D97706;
+    --btn-amber-border: #D97706;
+    --btn-amber-text: #FFFFFF;
+    --btn-amber-subtext: #FEF3C7;
+  }
+
+  :root.light {
+    color-scheme: light;
+    --bg-background: var(--bg-background-light);
+    --bg-surface: var(--bg-surface-light);
+    --bg-surface-muted: var(--bg-surface-muted-light);
+    --border-theme: var(--border-theme-light);
+    --text-primary: var(--text-primary-light);
+    --text-muted: var(--text-muted-light);
+    --color-emerald-btn: var(--color-emerald-btn-light);
+    --color-amber-badge: var(--color-amber-badge-light);
+    --backdrop-overlay: var(--backdrop-overlay-light);
+
+    --bg-background-rgb: 244 245 247;
+    --bg-surface-rgb: 255 255 255;
+    --bg-surface-muted-rgb: 248 250 252;
+    --border-theme-rgb: 226 232 240;
+    --text-primary-rgb: 17 24 39;
+    --text-muted-rgb: 100 116 139;
+    --color-emerald-btn-rgb: 0 106 255;
+    --text-emerald-rgb: 0 106 255;
+    --color-amber-badge-rgb: 217 119 6;
+    --text-amber-rgb: 180 83 9;
+
+    --glass-card-bg: #FFFFFF;
+    --glass-dock-bg: #FFFFFF;
+    --glass-modal-bg: #FFFFFF;
+    --glass-inset-bg: #F8FAFC;
+    --glass-border: #E2E8F0;
+    --glass-border-Subtle: #CBD5E1;
+    --glass-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    --glass-dock-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+
+    --btn-emerald-bg: #006AFF;
+    --btn-emerald-border: #006AFF;
+    --btn-emerald-text: #FFFFFF;
+    --btn-emerald-subtext: #E0E7FF;
+
+    --btn-amber-bg: #D97706;
+    --btn-amber-border: #D97706;
+    --btn-amber-text: #FFFFFF;
+    --btn-amber-subtext: #FEF3C7;
+  }
+
+  body {
+    background-color: var(--bg-background);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+}
+
+/* True Frosted Liquid Glass Surface Utilities — GPU-Optimized
+   - Cards (.bg-surface, .bg-surface/90) use translucent liquid-glass sheen + specular inner top highlight
+     without per-card backdrop-filter (eliminating 25+ redundant blur passes over the smooth canvas).
+   - Floating overlays (.bg-surface/85 header, .bg-surface/95 mini-cart dock & modals, bottom nav)
+     retain hardware-accelerated backdrop-filter blur where content scrolls underneath. */
+.bg-background {
+  background-color: rgb(var(--bg-background-rgb));
+}
+.bg-surface,
+.bg-surface\/90 {
+  background-color: var(--glass-card-bg) !important;
+  background-image: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  box-shadow: var(--glass-shadow);
+}
+.bg-surface\/85 {
+  background-color: var(--glass-card-bg) !important;
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  box-shadow: var(--glass-shadow);
+}
+.bg-surface\/95 {
+  background-color: var(--glass-dock-bg) !important;
+  backdrop-filter: blur(14px) saturate(170%);
+  -webkit-backdrop-filter: blur(14px) saturate(170%);
+  box-shadow: var(--glass-dock-shadow);
+}
+.bg-surface-muted,
+.bg-surface-muted\/80 {
+  background-color: var(--glass-inset-bg) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
+}
+.bg-surface-muted\/40,
+.bg-surface-muted\/50 {
+  background-color: var(--glass-inset-bg) !important;
+}
+.text-primary {
+  color: rgb(var(--text-primary-rgb));
+}
+.text-muted {
+  color: rgb(var(--text-muted-rgb));
+}
+.border-theme {
+  border-color: var(--glass-border) !important;
+}
+
+/* Tinted Frosted Glass Buttons with Automatic High-Contrast Text (Dark Ink in Light Mode, Luminous White in Dark Mode) */
+.bg-emerald-btn {
+  background-color: var(--btn-emerald-bg) !important;
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  border: 1.5px solid var(--btn-emerald-border) !important;
+  color: var(--btn-emerald-text) !important;
+  box-shadow: 0 4px 14px -2px rgba(16, 185, 129, 0.18), inset 0 1px 0 0 rgba(255, 255, 255, 0.45);
+}
+.bg-emerald-btn span,
+.bg-emerald-btn div,
+.bg-emerald-btn svg {
+  color: var(--btn-emerald-text) !important;
+}
+.bg-emerald-btn\/15,
+.bg-emerald-btn\/20 {
+  background-color: var(--btn-emerald-bg) !important;
+}
+.text-emerald-btn {
+  color: rgb(var(--text-emerald-rgb)) !important;
+}
+.border-emerald-btn,
+.border-emerald-btn\/40,
+.border-emerald-btn\/50 {
+  border-color: var(--btn-emerald-border) !important;
+}
+
+.bg-amber-badge {
+  background-color: var(--btn-amber-bg) !important;
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  border: 1.5px solid var(--btn-amber-border) !important;
+  color: var(--btn-amber-text) !important;
+  box-shadow: 0 4px 14px -2px rgba(245, 158, 11, 0.18), inset 0 1px 0 0 rgba(255, 255, 255, 0.45);
+}
+.bg-amber-badge span,
+.bg-amber-badge div,
+.bg-amber-badge svg {
+  color: var(--btn-amber-text) !important;
+}
+.bg-amber-badge\/10,
+.bg-amber-badge\/15,
+.bg-amber-badge\/20 {
+  background-color: var(--btn-amber-bg) !important;
+}
+.text-amber-badge {
+  color: rgb(var(--text-amber-rgb)) !important;
+}
+.border-amber-badge,
+.border-amber-badge\/40,
+.border-amber-badge\/50,
+.border-amber-badge\/70 {
+  border-color: var(--btn-amber-border) !important;
+}
+
+/* Modern Web Guidance (performance, interactions-in-complex-layouts, defer-rendering-heavy-content):
+   Scope isolated cards with CSS containment so mutations (+1 qty, restock) do not trigger global reflows,
+   and defer below-the-fold heavy sections with content-visibility: auto + contain-intrinsic-size. */
+.pos-contain-card {
+  contain: layout style paint;
+}
+
+.pos-defer-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 220px;
+}
+
+@supports not (content-visibility: auto) {
+  .pos-defer-section {
+    contain: layout style paint;
+  }
+}
+
+/* Ambient Clean Canvas Backdrop inside the POS Shell */
+.pos-glass-canvas {
+  background-color: var(--bg-background);
+}
+
+/* Modern Web Guidance: prevent-page-scroll-under-modal-dialog & light-dismiss-a-dialog */
+dialog:modal {
+  /* MANDATORY: Prevent scroll gestures inside the modal (even when its content
+     does not overflow) from chaining to the underlying page. */
+  overscroll-behavior: contain;
+  z-index: 50;
+  background-color: var(--glass-modal-bg) !important;
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+}
+
+dialog::backdrop {
+  /* MANDATORY: ::backdrop defaults to overflow: visible (not a scroll container).
+     Set overflow: hidden so it becomes a non-scrollable scroll container that
+     honors overscroll-behavior. */
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background-color: var(--backdrop-overlay);
+  backdrop-filter: blur(8px);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Custom subtle scrollbars for horizontal category pills and compact ledgers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.cyber-glass {
+  background-color: var(--glass-card-bg);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.cyber-grid-bg {
+  background-image: 
+    linear-gradient(to right, rgba(148, 163, 184, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateY(-10%);
+  }
+  50% {
+    transform: translateY(220%);
+  }
+  100% {
+    transform: translateY(-10%);
+  }
+}
+
+.animate-scanline {
+  animation: scanline 2.6s ease-in-out infinite;
+}
+
+@keyframes toastSlideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.toast-floating-container {
+  animation: toastSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

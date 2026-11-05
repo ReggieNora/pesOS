@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <!-- MANDATORY: Declare support for both light and dark themes -->
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      try {
+        const stored = localStorage.getItem('tingipos_theme');
+        const meta = document.querySelector('meta[name="color-scheme"]');
+        if (meta) {
+          meta.content = stored === 'light' || stored === 'dark' ? stored : 'light dark';
+        }
+        const isDark =
+          stored === 'dark' ||
+          (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.classList.toggle('dark', isDark);
+        document.documentElement.classList.toggle('light', !isDark);
+      } catch (_) {}
+    </script>
+    <meta name="theme-color" content="#0F172A" />
+    <title>pesOS — Smart Sari-Sari POS</title>
+    <link rel="manifest" href="/manifest.json" />
+  </head>
+  <body class="bg-background text-primary antialiased selection:bg-[#2563EB]/25 selection:text-primary transition-colors duration-200">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
