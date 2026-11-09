@@ -253,7 +253,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
   onOpenPautangModal,
   onOpenOcrModal,
 }) => {
-  const { t } = useLanguage();
+  const { t, getCategory, getUnit } = useLanguage();
   const [activeCategory, setActiveCategory] = useState<CategoryId | 'all'>('all');
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
@@ -327,8 +327,8 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
   );
 
   const categoryTabList: { id: CategoryId | 'all'; label: string; emoji: string }[] = [
-    { id: 'all', label: t('catalog.all_items'), emoji: '📦' },
-    ...CATEGORIES.map((c) => ({ id: c.id, label: c.shortLabel, emoji: c.emoji })),
+    { id: 'all', label: t('register.all_items'), emoji: '📦' },
+    ...CATEGORIES.map((c) => ({ id: c.id, label: getCategory(c.id), emoji: c.emoji })),
   ];
 
   const getCategoryItemCount = (catId: CategoryId) => {
@@ -521,14 +521,14 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                   className="h-8 px-2.5 rounded-lg bg-surface-muted hover:bg-slate-200 dark:hover:bg-slate-800 border border-theme text-xs font-bold text-primary flex items-center gap-1.5 active:scale-95 transition"
                 >
                   <ArrowLeft className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>{t('catalog.all_categories')}</span>
+                  <span>{t('register.all_categories')}</span>
                 </button>
                 <span className="text-muted">•</span>
                 <span className={`px-2.5 py-1 rounded-md border font-bold text-xs flex items-center gap-1.5 truncate ${activeCategoryTheme.breadcrumbBadge}`}>
                   <span>{activeCategoryDef?.emoji}</span>
-                  <span className="truncate">{activeCategoryDef?.name}</span>
+                  <span className="truncate">{getCategory(activeCategoryDef?.id || '')}</span>
                   <span className="text-[10px] opacity-75 font-mono">
-                    ({visibleProducts.length} {t('catalog.items_count')})
+                    ({visibleProducts.length} {t('register.items_count')})
                   </span>
                 </span>
               </div>
@@ -537,10 +537,10 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                 type="button"
                 onClick={handleResetCategories}
                 className="text-[10px] font-mono text-muted hover:text-primary flex items-center gap-1 shrink-0"
-                title={t('catalog.pull_reveal')}
+                title={t('register.pull_reveal')}
               >
                 <RotateCcw className="w-3 h-3" />
-                <span className="hidden sm:inline">{t('catalog.pull_reveal')}</span>
+                <span className="hidden sm:inline">{t('register.pull_reveal')}</span>
               </button>
             </div>
           )}
@@ -629,10 +629,10 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                     </div>
                     <div>
                       <div className="font-extrabold text-xs sm:text-sm leading-tight text-white truncate">
-                        {cat.name}
+                        {getCategory(cat.id)}
                       </div>
                       <div className="text-[10px] font-mono text-white/85 mt-0.5">
-                        {count} items
+                        {count} {t('register.items_count')}
                       </div>
                     </div>
                   </button>
@@ -741,7 +741,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                           {product.shortName}
                         </div>
                         <div className="text-white/80 text-xs mt-0.5 truncate">
-                          {product.unit}
+                          {getUnit(product.unit, 1)}
                         </div>
                         <div className="flex items-baseline justify-between mt-1">
                           <div className="text-white font-bold text-lg">
@@ -826,7 +826,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                     {item.product.shortName}
                   </div>
                   <div className="text-[11px] font-mono text-muted">
-                    {formatPeso(item.product.sellingPrice)} × {item.qty}
+                    {formatPeso(item.product.sellingPrice)} × {item.qty} {getUnit(item.product.unit, item.qty)}
                   </div>
                 </div>
 

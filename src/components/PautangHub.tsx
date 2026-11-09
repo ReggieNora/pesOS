@@ -29,6 +29,7 @@ import {
 } from '../types/pos';
 import { formatPeso, formatPesoExact, triggerHapticFeedback } from '../utils/localDb';
 import { NativeModal } from './NativeModal';
+import { useLanguage } from '../context/LanguageContext';
 
 interface PautangHubProps {
   customers: Customer[];
@@ -51,6 +52,7 @@ export const PautangHub: React.FC<PautangHubProps> = React.memo(({
   initialSortBy = 'HIGHEST_BALANCE',
   ownerPin = '9999',
 }) => {
+  const { t } = useLanguage();
   const [sortBy, setSortBy] = useState<'HIGHEST_BALANCE' | 'OLDEST_DEBT'>(
     initialSortBy || 'HIGHEST_BALANCE'
   );
@@ -463,7 +465,7 @@ export const PautangHub: React.FC<PautangHubProps> = React.memo(({
               {/* Outstanding Debt & Credit Limit Badge */}
               <div className="text-right shrink-0">
                 <span className="text-[10px] font-bold uppercase text-muted block">
-                  Current Utang Balance
+                  {t('pautang.current_balance')}
                 </span>
                 <span className="text-xl font-mono font-black text-amber-badge">
                   {formatPesoExact(activeCustomer.currentBalance)}
@@ -478,17 +480,17 @@ export const PautangHub: React.FC<PautangHubProps> = React.memo(({
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-black uppercase tracking-wider text-emerald-btn flex items-center gap-1.5">
                     <Coins className="w-4 h-4 stroke-[2.5]" />
-                    <span>Record Cash Repayment</span>
+                    <span>{t('pautang.record_repayment')}</span>
                   </span>
                   <span className="text-xs font-mono text-muted">
-                    Instant balance update
+                    {t('pautang.instant_update')}
                   </span>
                 </div>
 
                 {/* Preset Chips */}
                 <div>
                   <label className="text-[11px] font-bold text-muted uppercase block mb-1.5">
-                    Quick Preset Amounts
+                    {t('pautang.quick_presets')}
                   </label>
                   <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
                     {[50, 100, 200, 500].map((amt) => (
@@ -521,7 +523,7 @@ export const PautangHub: React.FC<PautangHubProps> = React.memo(({
                           : 'bg-surface border-theme text-emerald-btn hover:border-emerald-500'
                       }`}
                     >
-                      Full (₱{activeCustomer.currentBalance})
+                      {t('pautang.full_balance')} (₱{activeCustomer.currentBalance})
                     </button>
                   </div>
                 </div>
@@ -530,7 +532,7 @@ export const PautangHub: React.FC<PautangHubProps> = React.memo(({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-[11px] font-bold text-muted uppercase block mb-1">
-                      Cash Amount Tendered (₱)
+                      {t('pautang.amount_to_pay')}
                     </label>
                     <input
                       type="number"
@@ -543,7 +545,7 @@ export const PautangHub: React.FC<PautangHubProps> = React.memo(({
 
                   <div>
                     <label className="text-[11px] font-bold text-muted uppercase block mb-1">
-                      Payment Note / Remittance
+                      {t('pautang.optional_note')}
                     </label>
                     <input
                       type="text"
@@ -564,7 +566,7 @@ export const PautangHub: React.FC<PautangHubProps> = React.memo(({
                 >
                   <Coins className="w-4 h-4 stroke-[2.5]" />
                   <span>
-                    Record {formatPesoExact(parseFloat(repayAmount) || 0)} Cash Repayment
+                    {t('pautang.confirm_repayment')} ({formatPesoExact(parseFloat(repayAmount) || 0)})
                   </span>
                 </button>
               </div>
@@ -625,7 +627,7 @@ export const PautangHub: React.FC<PautangHubProps> = React.memo(({
                   <div className="flex items-center justify-between text-[11px] font-mono text-muted">
                     <span>Min: ₱200</span>
                     <span>
-                      Available Room:{' '}
+                      {t('pautang.available_credit')}:{' '}
                       <strong className="text-emerald-btn font-bold">
                         {formatPesoExact(
                           Math.max(0, activeCreditLimit - activeCustomer.currentBalance)
@@ -895,9 +897,9 @@ export const PautangHub: React.FC<PautangHubProps> = React.memo(({
                   <KeyRound className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-black text-sm text-primary">Owner PIN Required</h3>
+                  <h3 className="font-black text-sm text-primary">{t('pautang.enter_owner_pin')}</h3>
                   <p className="text-[10px] text-muted">
-                    Unlock {activeCustomer?.name}&apos;s credit ceiling
+                    {t('pautang.pin_override_required')}
                   </p>
                 </div>
               </div>
@@ -980,7 +982,7 @@ export const PautangHub: React.FC<PautangHubProps> = React.memo(({
               }}
               className="w-full py-1.5 text-xs font-bold text-muted hover:text-primary cursor-pointer"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </div>

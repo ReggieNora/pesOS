@@ -1171,10 +1171,10 @@ export function App() {
                 </div>
                 <div className="space-y-1.5 max-w-sm">
                   <h2 className="text-lg font-black text-primary uppercase tracking-wide">
-                    Owner Overwatch Locked (RBAC)
+                    {t('dashboard.access_denied_title')}
                   </h2>
                   <p className="text-xs text-muted leading-relaxed">
-                    Only the store owner can view financial analytics, wholesale supplier costs, and shift audit discrepancy reports.
+                    {t('dashboard.access_denied_desc')}
                   </p>
                 </div>
                 <button
@@ -1189,7 +1189,7 @@ export function App() {
                   className="min-h-[50px] px-6 rounded-xl bg-[#006AFF] hover:bg-blue-600 text-white font-black text-xs uppercase tracking-wider shadow-sm flex items-center gap-2 transition active:scale-95 cursor-pointer"
                 >
                   <Eye className="w-4 h-4 stroke-[2.5]" />
-                  <span>Unlock with Owner PIN (9999)</span>
+                  <span>{t('dashboard.unlock_owner_pin')}</span>
                 </button>
               </div>
             ))}

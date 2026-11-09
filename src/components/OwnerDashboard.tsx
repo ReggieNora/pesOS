@@ -34,6 +34,7 @@ import {
   TransactionRecord,
 } from '../types/pos';
 import { formatPeso, formatPesoExact, triggerHapticFeedback } from '../utils/localDb';
+import { useLanguage } from '../context/LanguageContext';
 
 interface CashMovementEntry {
   id: string;
@@ -75,6 +76,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = React.memo(({
   onApplyDeadStockPromo,
   onAddCashMovement,
 }) => {
+  const { t } = useLanguage();
   // Modal & Drawer Drill-Down States
   const [isTxLogOpen, setIsTxLogOpen] = useState(false);
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null);
@@ -238,7 +240,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = React.memo(({
           className="rounded-2xl bg-surface border border-theme p-4 shadow-sm space-y-2 cursor-pointer transition-all hover:border-blue-500/40 hover:shadow-md active:scale-[0.99] text-left group w-full"
         >
           <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-muted">
-            <span>Gross Sales</span>
+            <span>{t('dashboard.today_sales')}</span>
             <div className="flex items-center gap-1.5">
               <DollarSign className="w-4 h-4 text-[#006AFF]" />
               <ArrowUpRight className="w-3.5 h-3.5 text-muted group-hover:text-[#006AFF] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
@@ -299,7 +301,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = React.memo(({
           className="rounded-2xl bg-surface border border-theme p-4 shadow-sm space-y-2 cursor-pointer transition-all hover:border-blue-500/40 hover:shadow-md active:scale-[0.99] text-left group w-full"
         >
           <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-muted">
-            <span>Net Profit (Margin)</span>
+            <span>{t('dashboard.net_profit')}</span>
             <div className="flex items-center gap-1.5">
               <TrendingUp className="w-4 h-4 text-emerald-btn" />
               <ArrowUpRight className="w-3.5 h-3.5 text-muted group-hover:text-emerald-btn group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
@@ -328,7 +330,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = React.memo(({
           className="rounded-2xl bg-surface border border-theme p-4 shadow-sm space-y-2 cursor-pointer transition-all hover:border-blue-500/40 hover:shadow-md active:scale-[0.99] text-left group w-full"
         >
           <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-muted">
-            <span>Outstanding Utang</span>
+            <span>{t('dashboard.unpaid_pautang')}</span>
             <div className="flex items-center gap-1.5">
               <Users className="w-4 h-4 text-amber-badge" />
               <ArrowUpRight className="w-3.5 h-3.5 text-muted group-hover:text-amber-badge group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
@@ -357,7 +359,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = React.memo(({
           className="rounded-2xl bg-surface border border-theme p-4 shadow-sm space-y-2 cursor-pointer transition-all hover:border-blue-500/40 hover:shadow-md active:scale-[0.99] text-left group w-full sm:col-span-2 lg:col-span-1"
         >
           <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-muted">
-            <span>Low Stock Alerts</span>
+            <span>{t('dashboard.low_stock_items')}</span>
             <div className="flex items-center gap-1.5">
               <AlertTriangle className="w-4 h-4 text-rose-500" />
               <ArrowUpRight className="w-3.5 h-3.5 text-muted group-hover:text-rose-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />

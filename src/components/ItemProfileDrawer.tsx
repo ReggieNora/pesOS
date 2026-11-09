@@ -42,7 +42,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
   environmentMode = 'DEMO',
   onSave,
 }) => {
-  const { t } = useLanguage();
+  const { t, getCategory } = useLanguage();
   const isNew = !product;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -355,7 +355,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
                 >
                   {selectableCategories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
-                      {cat.emoji} {cat.shortLabel}
+                      {cat.emoji} {getCategory(cat.id)}
                     </option>
                   ))}
                 </select>
@@ -399,7 +399,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  {t('finance.selling_price')} <span className="text-rose-400">*</span>
+                  {t('item_profile.selling_price')} <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₱</span>
@@ -417,7 +417,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  {t('finance.cost_puhunan')} (₱)
+                  {t('item_profile.cost_puhunan')}
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₱</span>
@@ -444,7 +444,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
               <div className="flex items-center space-x-2">
                 <TrendingUp className={`w-4 h-4 ${isProfit ? 'text-emerald-400' : 'text-rose-400 rotate-180'}`} />
                 <span className="text-xs font-medium">
-                  {isProfit ? `${t('finance.kita_margin')}:` : `${t('finance.lugi_margin')}:`}
+                  {isProfit ? `${t('item_profile.kita_margin')}:` : `${t('item_profile.lugi_margin')}:`}
                 </span>
               </div>
               <div className="text-right">
@@ -467,7 +467,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  {t('finance.current_stock')}
+                  {t('item_profile.current_stock')}
                 </label>
                 <input
                   type="number"
@@ -480,7 +480,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  {t('finance.low_stock_alert')}
+                  {t('item_profile.low_stock_alert')}
                 </label>
                 <input
                   type="number"

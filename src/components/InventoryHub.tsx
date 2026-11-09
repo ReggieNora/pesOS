@@ -55,7 +55,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
   onSaveProductProfile,
   initialFilterLowOnly = false,
 }) => {
-  const { t } = useLanguage();
+  const { t, getCategory, getUnit } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterLowOnly, setFilterLowOnly] = useState(initialFilterLowOnly);
 
@@ -115,8 +115,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
     products.find((p) => p.id === selectedProductId) || products[0] || null;
 
   const getCategoryLabel = (catId: string) => {
-    const found = CATEGORIES.find((c) => c.id === catId);
-    return found ? found.shortLabel : catId;
+    return getCategory(catId);
   };
 
   const filteredProducts = useMemo(() => {
@@ -152,8 +151,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
   };
 
   const pluralUnit = (unit: string, count: number) => {
-    if (unit.endsWith('kg') || unit.endsWith('s')) return unit;
-    return count === 1 ? unit : `${unit}s`;
+    return getUnit(unit, count);
   };
 
   const handleSaveDetails = (e: React.FormEvent) => {
@@ -465,7 +463,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
               <div className="grid grid-cols-4 gap-3">
                 <div className="rounded-xl p-3 bg-surface-muted border border-theme">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted block">
-                    Current On-Hand
+                    {t('inventory.current_on_hand')}
                   </span>
                   <div className="text-2xl font-mono font-black text-primary mt-1">
                     {selectedProduct.stockQty}{' '}
@@ -474,13 +472,13 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
                     </span>
                   </div>
                   <span className="text-[10px] font-mono text-muted block mt-1">
-                    Min Alert: {selectedProduct.lowStockThreshold}
+                    {t('inventory.min_alert')}: {selectedProduct.lowStockThreshold}
                   </span>
                 </div>
 
                 <div className="rounded-xl p-3 bg-surface-muted border border-theme">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted block">
-                    Retail SRP
+                    {t('inventory.retail_srp')}
                   </span>
                   <div className="text-2xl font-mono font-black text-primary mt-1">
                     {formatPesoExact(selectedProduct.sellingPrice)}
@@ -492,7 +490,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
 
                 <div className="rounded-xl p-3 bg-surface-muted border border-theme">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted block">
-                    Wholesale Cost
+                    {t('inventory.wholesale_cost')}
                   </span>
                   <div className="text-2xl font-mono font-black text-primary mt-1">
                     {formatPesoExact(selectedProduct.wholesaleCost)}
@@ -504,7 +502,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
 
                 <div className="rounded-xl p-3 bg-surface-muted border border-theme">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-btn block">
-                    Profit Margin
+                    {t('inventory.profit_margin')}
                   </span>
                   <div className="text-2xl font-mono font-black text-emerald-btn mt-1">
                     +{Math.round(
@@ -515,7 +513,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
                     %
                   </div>
                   <span className="text-[10px] font-mono text-emerald-btn block mt-1">
-                    +{formatPesoExact(selectedProduct.sellingPrice - selectedProduct.wholesaleCost)} profit/unit
+                    +{formatPesoExact(selectedProduct.sellingPrice - selectedProduct.wholesaleCost)} {t('inventory.profit_per_unit')}
                   </span>
                 </div>
               </div>
@@ -526,7 +524,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
                   <div className="rounded-2xl bg-surface-muted/60 border border-theme p-5 space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black uppercase tracking-wider text-primary">
-                        Stock Adjustment &amp; Count In
+                        {t('inventory.stock_adjustment')}
                       </span>
                       <div className="flex items-center gap-2 font-mono text-xs font-bold text-emerald-btn bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-lg">
                         <span>Current: {selectedProduct.stockQty}</span>
@@ -575,7 +573,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
                     {/* Quick Add Presets (+6, +12, +24, +48) */}
                     <div>
                       <span className="text-[11px] font-bold text-muted uppercase block mb-1.5">
-                        Quick Add Case Presets
+                        {t('inventory.case_presets')}
                       </span>
                       <div className="grid grid-cols-4 gap-2">
                         {[6, 12, 24, 48].map((qty) => (
@@ -687,7 +685,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
                     className="min-h-[48px] px-6 rounded-xl bg-emerald-btn hover:opacity-95 text-white font-black text-xs uppercase tracking-wide flex items-center gap-2 shadow-sm transition active:scale-95 disabled:opacity-40"
                   >
                     <PackagePlus className="w-4 h-4 stroke-[2.5]" />
-                    <span>Confirm Restock (+{restockDelta})</span>
+                    <span>{t('inventory.confirm_restock')} (+{restockDelta})</span>
                   </button>
                 ) : (
                   <button
@@ -696,7 +694,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
                     className="min-h-[48px] px-6 rounded-xl bg-[#006AFF] hover:bg-blue-600 text-white font-black text-xs uppercase tracking-wide flex items-center gap-2 shadow-sm transition active:scale-95"
                   >
                     <Check className="w-4 h-4 stroke-[2.5]" />
-                    <span>Save Changes</span>
+                    <span>{t('item_profile.save_changes')}</span>
                   </button>
                 )}
               </div>
@@ -735,7 +733,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
                 className="h-8 px-2 rounded-lg border border-sky-500/30 text-xs font-bold text-sky-500 bg-sky-500/10 flex items-center gap-1 cursor-pointer"
               >
                 <Camera className="w-3 h-3" />
-                <span>Profile</span>
+                <span>{t('inventory.item_profile_photo')}</span>
               </button>
               <button
                 type="button"
@@ -745,7 +743,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
                 }}
                 className="h-8 px-2.5 rounded-lg border border-theme text-xs font-bold text-primary bg-surface-muted cursor-pointer"
               >
-                {paneMode === 'RESTOCK' ? 'Edit Details' : 'Restock'}
+                {paneMode === 'RESTOCK' ? t('inventory.quick_edit') : t('inventory.stock_count_restock')}
               </button>
             </div>
           }
@@ -825,7 +823,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
                   className="w-full min-h-[50px] rounded-xl bg-emerald-btn text-white font-black text-xs uppercase tracking-wide flex items-center justify-center gap-2 shadow-sm"
                 >
                   <PackagePlus className="w-4 h-4 stroke-[2.5]" />
-                  <span>Confirm Restock (+{restockDelta})</span>
+                  <span>{t('inventory.confirm_restock')} (+{restockDelta})</span>
                 </button>
               </div>
             ) : (
