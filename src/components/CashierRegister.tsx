@@ -271,13 +271,13 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
   const [productSearch, setProductSearch] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  // Failed image URLs set for smooth fallback
-  const [failedImageIds, setFailedImageIds] = useState<Set<string>>(new Set());
+  // Failed image URLs set for smooth fallback (keyed by image URL so updating a product photo clears fallback)
+  const [failedImageUrls, setFailedImageUrls] = useState<Set<string>>(new Set());
 
-  const handleImageError = (productId: string) => {
-    setFailedImageIds((prev) => {
+  const handleImageError = (failedUrl: string) => {
+    setFailedImageUrls((prev) => {
       const next = new Set(prev);
-      next.add(productId);
+      next.add(failedUrl);
       return next;
     });
   };
@@ -677,7 +677,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                     : itemCatTheme.solidBadgeBg;
 
                   const { imageUrl, emoji } = getProductVisualAsset(product);
-                  const hasValidImage = Boolean(imageUrl && !failedImageIds.has(product.id));
+                  const hasValidImage = Boolean(imageUrl && !failedImageUrls.has(imageUrl));
 
                   return (
                     <button
@@ -699,7 +699,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                               src={imageUrl!}
                               alt={product.name}
                               className="w-full h-full object-cover rounded-lg"
-                              onError={() => handleImageError(product.id)}
+                              onError={() => handleImageError(imageUrl!)}
                               loading="lazy"
                             />
                           </div>

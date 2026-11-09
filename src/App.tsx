@@ -989,6 +989,7 @@ export function App() {
             <InventoryHub
               products={products}
               currentRole={currentUser.role}
+              environmentMode={environmentMode}
               isOcrModalOpen={isOcrModalOpen}
               onOpenOcrModal={() => setIsOcrModalOpen(true)}
               onCloseOcrModal={() => setIsOcrModalOpen(false)}
@@ -1052,6 +1053,43 @@ export function App() {
                   ...prev,
                 ]);
                 showToast(`Saved details for ${updates.name}`);
+              }}
+              onSaveProductProfile={(savedProduct, isNew) => {
+                if (isNew) {
+                  setProducts((prev) => [savedProduct, ...prev]);
+                  setAuditLogs((prev) => [
+                    {
+                      id: `aud-${Date.now()}`,
+                      timestamp: 'Just now',
+                      actorName: currentUser.name,
+                      actorRole: currentUser.role,
+                      eventType: 'PRICE_EDIT',
+                      severity: 'INFO',
+                      summary: `Created item ${savedProduct.shortName}`,
+                      detail: `Category: ${savedProduct.category} • SRP: ${formatPesoExact(savedProduct.sellingPrice)} • Stock: ${savedProduct.stockQty}`,
+                    },
+                    ...prev,
+                  ]);
+                  showToast(`Added new item "${savedProduct.shortName}"`);
+                } else {
+                  setProducts((prev) =>
+                    prev.map((p) => (p.id === savedProduct.id ? savedProduct : p))
+                  );
+                  setAuditLogs((prev) => [
+                    {
+                      id: `aud-${Date.now()}`,
+                      timestamp: 'Just now',
+                      actorName: currentUser.name,
+                      actorRole: currentUser.role,
+                      eventType: 'PRICE_EDIT',
+                      severity: 'INFO',
+                      summary: `Updated item profile for ${savedProduct.shortName}`,
+                      detail: `SRP: ${formatPesoExact(savedProduct.sellingPrice)} • Stock: ${savedProduct.stockQty}`,
+                    },
+                    ...prev,
+                  ]);
+                  showToast(`Saved profile for "${savedProduct.shortName}"`);
+                }
               }}
               onCommitOcrInvoice={handleCommitOcrInvoice}
               initialFilterLowOnly={inventoryFilterLowOnly}

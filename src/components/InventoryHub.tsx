@@ -4,6 +4,7 @@ import {
   Camera,
   Check,
   Edit3,
+  ExternalLink,
   Minus,
   Package,
   PackagePlus,
@@ -13,9 +14,10 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { CATEGORIES, OCR_INVOICE_PRESETS } from '../data/mockSariSariData';
-import { OcrInvoicePreset, Product, Role } from '../types/pos';
+import { EnvironmentMode, OcrInvoicePreset, Product, Role } from '../types/pos';
 import { formatPeso, formatPesoExact, triggerHapticFeedback } from '../utils/localDb';
 import { NativeModal } from './NativeModal';
+import { ItemProfileDrawer } from './ItemProfileDrawer';
 
 interface ProductEditPayload {
   name: string;
@@ -28,28 +30,48 @@ interface ProductEditPayload {
 interface InventoryHubProps {
   products: Product[];
   currentRole: Role;
+  environmentMode?: EnvironmentMode;
   isOcrModalOpen: boolean;
   onOpenOcrModal: () => void;
   onCloseOcrModal: () => void;
   onRestockProduct: (productId: string, addedQty: number) => void;
   onUpdateProductDetails: (productId: string, updates: ProductEditPayload) => void;
   onCommitOcrInvoice: (preset: OcrInvoicePreset) => void;
+  onSaveProductProfile?: (product: Product, isNew: boolean) => void;
   initialFilterLowOnly?: boolean;
 }
 
 export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
   products,
   currentRole,
+  environmentMode = 'DEMO',
   isOcrModalOpen,
   onOpenOcrModal,
   onCloseOcrModal,
   onRestockProduct,
   onUpdateProductDetails,
   onCommitOcrInvoice,
+  onSaveProductProfile,
   initialFilterLowOnly = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterLowOnly, setFilterLowOnly] = useState(initialFilterLowOnly);
+
+  // Item Profile Drawer State
+  const [isItemDrawerOpen, setIsItemDrawerOpen] = useState(false);
+  const [drawerProduct, setDrawerProduct] = useState<Product | null>(null);
+
+  const handleOpenNewItem = () => {
+    triggerHapticFeedback('tap');
+    setDrawerProduct(null);
+    setIsItemDrawerOpen(true);
+  };
+
+  const handleEditItemProfile = (item: Product) => {
+    triggerHapticFeedback('tap');
+    setDrawerProduct(item);
+    setIsItemDrawerOpen(true);
+  };
 
   // Auto-select first low stock item if pre-filtered to low stock
   const [selectedProductId, setSelectedProductId] = useState<string | null>(() => {
@@ -170,27 +192,28 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
       >
         {/* Sticky Header: AI OCR Action + Search + Filter Pills */}
         <div className="shrink-0 p-3 border-b border-theme space-y-2.5 bg-surface">
-          {/* Top Camera OCR Stock-In CTA */}
-          <div className="rounded-xl bg-surface-muted border border-theme p-2.5 flex items-center justify-between gap-2 shadow-sm">
-            <div className="space-y-0.5 min-w-0">
-              <div className="text-[11px] font-extrabold uppercase tracking-wider text-primary flex items-center gap-1.5 truncate">
-                <Sparkles className="w-3.5 h-3.5 text-[#006AFF] shrink-0" />
-                <span>AI Camera OCR Stock-In</span>
-              </div>
-              <p className="text-[10px] text-muted truncate">
-                Snap wholesaler invoice to auto-commit
-              </p>
-            </div>
+          {/* Top Actions: [+ Add New Item] & AI Camera OCR Stock-In CTA */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleOpenNewItem}
+              className="flex-1 min-h-[38px] px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wide flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition cursor-pointer"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>Add New Item</span>
+            </button>
+
             <button
               type="button"
               onClick={() => {
                 triggerHapticFeedback('tap');
                 onOpenOcrModal();
               }}
-              className="min-h-[38px] px-3 rounded-lg bg-[#006AFF] hover:bg-blue-600 text-white font-black text-xs uppercase tracking-wide flex items-center gap-1 shrink-0 shadow-sm active:scale-95 transition"
+              className="min-h-[38px] px-3 rounded-xl bg-[#006AFF] hover:bg-blue-600 text-white font-black text-xs uppercase tracking-wide flex items-center gap-1 shrink-0 shadow-sm active:scale-95 transition cursor-pointer"
+              title="Snap wholesaler invoice to auto-commit"
             >
               <Camera className="w-3.5 h-3.5 stroke-[2.25]" />
-              <span>Scan</span>
+              <span>AI OCR</span>
             </button>
           </div>
 
@@ -268,7 +291,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
                       selectProduct(item, window.innerWidth < 768);
                     }
                   }}
-                  className={`w-full text-left rounded-xl p-2.5 border transition cursor-pointer flex items-center justify-between gap-2.5 ${
+                  className={`w-full text-left rounded-xl p-2.5 border transition cursor-pointer flex items-center justify-between gap-2.5 group ${
                     isSelected
                       ? 'bg-blue-50/70 dark:bg-blue-950/40 border-[#006AFF] ring-1 ring-[#006AFF]/30 shadow-sm'
                       : isLow
@@ -277,9 +300,17 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="w-10 h-10 rounded-lg bg-surface-muted border border-theme flex items-center justify-center text-lg shrink-0">
-                      {item.icon}
-                    </span>
+                    <div className="w-10 h-10 rounded-lg bg-surface-muted border border-theme flex items-center justify-center text-lg shrink-0 overflow-hidden relative">
+                      {item.imageUrl || item.image_url || item.image ? (
+                        <img
+                          src={item.imageUrl || item.image_url || item.image}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span>{item.icon}</span>
+                      )}
+                    </div>
                     <div className="min-w-0">
                       <div className="text-xs font-extrabold text-primary truncate">
                         {item.name}
@@ -290,19 +321,34 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
                     </div>
                   </div>
 
-                  <div className="text-right shrink-0">
-                    <span
-                      className={`inline-block px-2 py-0.5 rounded font-mono font-bold text-[11px] border ${
-                        isLow
-                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40'
-                          : 'bg-surface-muted text-primary border-theme'
-                      }`}
-                    >
-                      {item.stockQty} {pluralUnit(item.unit, item.stockQty)}
-                    </span>
-                    <div className="font-mono font-black text-xs text-primary mt-1">
-                      {formatPesoExact(item.sellingPrice)}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="text-right">
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded font-mono font-bold text-[11px] border ${
+                          isLow
+                            ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40'
+                            : 'bg-surface-muted text-primary border-theme'
+                        }`}
+                      >
+                        {item.stockQty} {pluralUnit(item.unit, item.stockQty)}
+                      </span>
+                      <div className="font-mono font-black text-xs text-primary mt-1">
+                        {formatPesoExact(item.sellingPrice)}
+                      </div>
                     </div>
+
+                    {/* Quick Profile Drawer Trigger Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditItemProfile(item);
+                      }}
+                      className="p-1.5 rounded-lg opacity-60 hover:opacity-100 hover:bg-surface-muted text-primary border border-theme transition cursor-pointer"
+                      title="Open Item Profile"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               );
@@ -323,9 +369,17 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
             {/* Top Detail Header */}
             <div className="shrink-0 p-4 border-b border-theme bg-surface flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
-                <span className="w-12 h-12 rounded-xl bg-surface-muted border border-theme flex items-center justify-center text-2xl shrink-0">
-                  {selectedProduct.icon}
-                </span>
+                <div className="w-12 h-12 rounded-xl bg-surface-muted border border-theme flex items-center justify-center text-2xl shrink-0 overflow-hidden">
+                  {selectedProduct.imageUrl || selectedProduct.image_url || selectedProduct.image ? (
+                    <img
+                      src={selectedProduct.imageUrl || selectedProduct.image_url || selectedProduct.image}
+                      alt={selectedProduct.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>{selectedProduct.icon}</span>
+                  )}
+                </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <h2 className="text-base font-black text-primary truncate">
@@ -342,6 +396,11 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
                         ? 'Low Stock'
                         : 'In Stock'}
                     </span>
+                    {selectedProduct.isFavorite && (
+                      <span className="px-1.5 py-0.5 rounded font-mono font-bold text-[10px] uppercase bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                        ★ Fav
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs font-mono text-muted mt-0.5">
                     SKU: {selectedProduct.sku} • {getCategoryLabel(selectedProduct.category)} • Unit: {selectedProduct.unit}
@@ -349,41 +408,52 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
                 </div>
               </div>
 
-              {/* Mode Switcher Pills: Restock vs Edit Details */}
-              <div className="flex items-center rounded-lg bg-surface-muted p-1 border border-theme shrink-0">
+              {/* Actions: Item Profile Drawer trigger + Mode Switcher Pills */}
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
-                  onClick={() => {
-                    triggerHapticFeedback('tap');
-                    setPaneMode('RESTOCK');
-                  }}
-                  className={`px-3 py-1.5 rounded-md text-xs font-bold transition ${
-                    paneMode === 'RESTOCK'
-                      ? 'bg-[#006AFF] text-white shadow-sm'
-                      : 'text-muted hover:text-primary'
-                  }`}
+                  onClick={() => handleEditItemProfile(selectedProduct)}
+                  className="px-3 py-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-500 dark:text-sky-400 border border-sky-500/30 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
                 >
-                  Stock Count &amp; Restock
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Item Profile &amp; Photo</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHapticFeedback('tap');
-                    setPaneMode('EDIT_DETAILS');
-                    setEditName(selectedProduct.name);
-                    setEditPrice(String(selectedProduct.sellingPrice));
-                    setEditCost(String(selectedProduct.wholesaleCost));
-                    setEditThreshold(String(selectedProduct.lowStockThreshold));
-                  }}
-                  className={`px-3 py-1.5 rounded-md text-xs font-bold transition flex items-center gap-1 ${
-                    paneMode === 'EDIT_DETAILS'
-                      ? 'bg-[#006AFF] text-white shadow-sm'
-                      : 'text-muted hover:text-primary'
-                  }`}
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>Edit Details</span>
-                </button>
+
+                <div className="flex items-center rounded-lg bg-surface-muted p-1 border border-theme">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHapticFeedback('tap');
+                      setPaneMode('RESTOCK');
+                    }}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition ${
+                      paneMode === 'RESTOCK'
+                        ? 'bg-[#006AFF] text-white shadow-sm'
+                        : 'text-muted hover:text-primary'
+                    }`}
+                  >
+                    Stock Count &amp; Restock
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHapticFeedback('tap');
+                      setPaneMode('EDIT_DETAILS');
+                      setEditName(selectedProduct.name);
+                      setEditPrice(String(selectedProduct.sellingPrice));
+                      setEditCost(String(selectedProduct.wholesaleCost));
+                      setEditThreshold(String(selectedProduct.lowStockThreshold));
+                    }}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition flex items-center gap-1 ${
+                      paneMode === 'EDIT_DETAILS'
+                        ? 'bg-[#006AFF] text-white shadow-sm'
+                        : 'text-muted hover:text-primary'
+                    }`}
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Quick Edit</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -653,16 +723,29 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
           accentColor="cyan"
           variant="bottom-sheet"
           headerAction={
-            <button
-              type="button"
-              onClick={() => {
-                triggerHapticFeedback('tap');
-                setPaneMode((prev) => (prev === 'RESTOCK' ? 'EDIT_DETAILS' : 'RESTOCK'));
-              }}
-              className="h-8 px-2.5 rounded-lg border border-theme text-xs font-bold text-primary bg-surface-muted"
-            >
-              {paneMode === 'RESTOCK' ? 'Edit Details' : 'Restock'}
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileSheetOpen(false);
+                  handleEditItemProfile(selectedProduct);
+                }}
+                className="h-8 px-2 rounded-lg border border-sky-500/30 text-xs font-bold text-sky-500 bg-sky-500/10 flex items-center gap-1 cursor-pointer"
+              >
+                <Camera className="w-3 h-3" />
+                <span>Profile</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHapticFeedback('tap');
+                  setPaneMode((prev) => (prev === 'RESTOCK' ? 'EDIT_DETAILS' : 'RESTOCK'));
+                }}
+                className="h-8 px-2.5 rounded-lg border border-theme text-xs font-bold text-primary bg-surface-muted cursor-pointer"
+              >
+                {paneMode === 'RESTOCK' ? 'Edit Details' : 'Restock'}
+              </button>
+            </div>
           }
         >
           <div className="space-y-4">
@@ -898,6 +981,29 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
           </button>
         </div>
       </NativeModal>
+
+      {/* Item Profile Slide-Out Drawer / Modal */}
+      <ItemProfileDrawer
+        isOpen={isItemDrawerOpen}
+        onClose={() => setIsItemDrawerOpen(false)}
+        product={drawerProduct}
+        environmentMode={environmentMode}
+        onSave={(savedProduct, isNew) => {
+          if (onSaveProductProfile) {
+            onSaveProductProfile(savedProduct, isNew);
+          } else {
+            // Fallback inline update
+            onUpdateProductDetails(savedProduct.id, {
+              name: savedProduct.name,
+              shortName: savedProduct.shortName,
+              sellingPrice: savedProduct.sellingPrice,
+              wholesaleCost: savedProduct.wholesaleCost,
+              lowStockThreshold: savedProduct.lowStockThreshold,
+            });
+          }
+          setSelectedProductId(savedProduct.id);
+        }}
+      />
     </div>
   );
 });
