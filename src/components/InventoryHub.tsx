@@ -18,6 +18,7 @@ import { EnvironmentMode, OcrInvoicePreset, Product, Role } from '../types/pos';
 import { formatPeso, formatPesoExact, triggerHapticFeedback } from '../utils/localDb';
 import { NativeModal } from './NativeModal';
 import { ItemProfileDrawer } from './ItemProfileDrawer';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ProductEditPayload {
   name: string;
@@ -54,6 +55,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
   onSaveProductProfile,
   initialFilterLowOnly = false,
 }) => {
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterLowOnly, setFilterLowOnly] = useState(initialFilterLowOnly);
 
@@ -200,7 +202,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
               className="flex-1 min-h-[38px] px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wide flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>Add New Item</span>
+              <span>{t('inventory.add_new_item')}</span>
             </button>
 
             <button
@@ -213,7 +215,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
               title="Snap wholesaler invoice to auto-commit"
             >
               <Camera className="w-3.5 h-3.5 stroke-[2.25]" />
-              <span>AI OCR</span>
+              <span>{t('inventory.ai_ocr')}</span>
             </button>
           </div>
 
@@ -416,7 +418,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
                   className="px-3 py-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-500 dark:text-sky-400 border border-sky-500/30 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
                 >
                   <Camera className="w-3.5 h-3.5" />
-                  <span>Item Profile &amp; Photo</span>
+                  <span>{t('inventory.item_profile_photo')}</span>
                 </button>
 
                 <div className="flex items-center rounded-lg bg-surface-muted p-1 border border-theme">
@@ -432,7 +434,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
                         : 'text-muted hover:text-primary'
                     }`}
                   >
-                    Stock Count &amp; Restock
+                    {t('inventory.stock_count_restock')}
                   </button>
                   <button
                     type="button"
@@ -451,7 +453,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
                     }`}
                   >
                     <Edit3 className="w-3.5 h-3.5" />
-                    <span>Quick Edit</span>
+                    <span>{t('inventory.quick_edit')}</span>
                   </button>
                 </div>
               </div>

@@ -17,6 +17,7 @@ import {
 import { CATEGORIES } from '../data/mockSariSariData';
 import { CartItem, CategoryId, Product, Role } from '../types/pos';
 import { formatPeso, formatPesoExact, triggerHapticFeedback } from '../utils/localDb';
+import { useLanguage } from '../context/LanguageContext';
 
 interface CashierRegisterProps {
   products: Product[];
@@ -252,6 +253,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
   onOpenPautangModal,
   onOpenOcrModal,
 }) => {
+  const { t } = useLanguage();
   const [activeCategory, setActiveCategory] = useState<CategoryId | 'all'>('all');
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
@@ -325,7 +327,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
   );
 
   const categoryTabList: { id: CategoryId | 'all'; label: string; emoji: string }[] = [
-    { id: 'all', label: 'All Items', emoji: '📦' },
+    { id: 'all', label: t('catalog.all_items'), emoji: '📦' },
     ...CATEGORIES.map((c) => ({ id: c.id, label: c.shortLabel, emoji: c.emoji })),
   ];
 
@@ -432,7 +434,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                   autoFocus
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
-                  placeholder="Search products, SKU, snacks..."
+                  placeholder={t('catalog.search_placeholder')}
                   className="w-full pl-8 pr-7 py-1 rounded-lg border border-theme bg-surface-muted text-xs text-primary focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
                 />
                 {productSearch && (
@@ -519,14 +521,14 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                   className="h-8 px-2.5 rounded-lg bg-surface-muted hover:bg-slate-200 dark:hover:bg-slate-800 border border-theme text-xs font-bold text-primary flex items-center gap-1.5 active:scale-95 transition"
                 >
                   <ArrowLeft className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>All Categories</span>
+                  <span>{t('catalog.all_categories')}</span>
                 </button>
                 <span className="text-muted">•</span>
                 <span className={`px-2.5 py-1 rounded-md border font-bold text-xs flex items-center gap-1.5 truncate ${activeCategoryTheme.breadcrumbBadge}`}>
                   <span>{activeCategoryDef?.emoji}</span>
                   <span className="truncate">{activeCategoryDef?.name}</span>
                   <span className="text-[10px] opacity-75 font-mono">
-                    ({visibleProducts.length} items)
+                    ({visibleProducts.length} {t('catalog.items_count')})
                   </span>
                 </span>
               </div>
@@ -535,10 +537,10 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                 type="button"
                 onClick={handleResetCategories}
                 className="text-[10px] font-mono text-muted hover:text-primary flex items-center gap-1 shrink-0"
-                title="Pull down or scroll up to reveal all categories"
+                title={t('catalog.pull_reveal')}
               >
                 <RotateCcw className="w-3 h-3" />
-                <span className="hidden sm:inline">Pull down to reveal</span>
+                <span className="hidden sm:inline">{t('catalog.pull_reveal')}</span>
               </button>
             </div>
           )}
@@ -558,8 +560,8 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
             }}
           >
             <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-muted px-0.5">
-              <span>Categories &amp; Quick Actions</span>
-              <span className="text-[10px] font-mono text-muted">Tap category to view items</span>
+              <span>{t('catalog.categories_actions')}</span>
+              <span className="text-[10px] font-mono text-muted">{t('catalog.tap_category_hint')}</span>
             </div>
 
             {/* High-Contrast Grid of Category & Utility Tiles */}
@@ -570,7 +572,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                 onClick={() => {
                   triggerHapticFeedback('tap');
                   setCustomAmount('');
-                  setCustomLabel('Custom Item');
+                  setCustomLabel(t('catalog.custom_item'));
                   setIsCustomModalOpen(true);
                 }}
                 className="group relative min-h-[110px] sm:min-h-[120px] rounded-xl p-3 bg-slate-700 hover:bg-slate-800 text-white flex flex-col justify-between text-left transition-all active:scale-[0.97] shadow-sm cursor-pointer"
@@ -585,7 +587,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                 </div>
                 <div>
                   <div className="font-black text-xs sm:text-sm leading-tight text-white">
-                    Custom ₱ Amount
+                    {t('catalog.custom_amount')}
                   </div>
                   <div className="text-[10px] font-mono text-white/80 mt-0.5">
                     Quick Keypad
@@ -723,7 +725,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                             </span>
                           ) : isLowStock ? (
                             <span className="bg-black/35 text-amber-200 backdrop-blur-xs font-bold text-xs px-2 py-0.5 rounded-full">
-                              {product.stockQty} left
+                              {product.stockQty} {t('catalog.left')}
                             </span>
                           ) : (
                             <span className="bg-white/25 text-white backdrop-blur-xs font-bold text-xs px-2 py-0.5 rounded-full">
@@ -771,7 +773,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
         {/* Ticket Header */}
         <div className="shrink-0 px-3.5 py-3 border-b border-theme flex items-center justify-between bg-surface-muted/50">
           <span className="text-xs font-black uppercase tracking-wider text-muted">
-            Current Ticket
+            {t('ticket.title')}
           </span>
           {cart.length > 0 && (
             <button
@@ -783,7 +785,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
               className="text-xs font-bold text-red-600 dark:text-red-400 hover:underline flex items-center gap-1 cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Clear All</span>
+              <span>{t('ticket.clear_all')}</span>
             </button>
           )}
         </div>
@@ -795,8 +797,8 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
               <div className="w-12 h-12 rounded-full bg-surface-muted flex items-center justify-center text-xl">
                 🛒
               </div>
-              <p className="text-xs font-semibold">Ticket is empty</p>
-              <p className="text-[11px]">Tap items or categories to build an order</p>
+              <p className="text-xs font-semibold">{t('ticket.empty_title')}</p>
+              <p className="text-[11px]">{t('ticket.empty_desc')}</p>
             </div>
           ) : (
             cart.map((item) => (
@@ -873,11 +875,11 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
         <div className="shrink-0 p-3.5 border-t border-theme bg-surface space-y-3">
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs text-muted">
-              <span>Items ({totalItems})</span>
+              <span>{t('ticket.items')} ({totalItems})</span>
               <span className="font-mono font-bold">{formatPesoExact(subtotal)}</span>
             </div>
             <div className="flex items-baseline justify-between pt-1 border-t border-theme">
-              <span className="text-sm font-black uppercase text-primary">Total</span>
+              <span className="text-sm font-black uppercase text-primary">{t('ticket.total')}</span>
               <span className="text-2xl font-mono font-black text-primary">
                 {formatPesoExact(subtotal)}
               </span>
@@ -897,7 +899,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
               className="w-full min-h-[54px] rounded-xl bg-[#006AFF] hover:bg-blue-600 active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-white font-black text-base uppercase tracking-wide flex items-center justify-center gap-2 shadow-sm transition"
             >
               <Wallet className="w-5 h-5 stroke-[2.5]" />
-              <span>Cash / Charge {formatPesoExact(subtotal)}</span>
+              <span>{t('ticket.cash_charge')} {formatPesoExact(subtotal)}</span>
             </button>
 
             {/* Secondary button: [ 📒 Charge to Pautang ] */}
@@ -910,7 +912,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
               }}
               className="w-full min-h-[44px] rounded-xl border-2 border-amber-500/70 hover:border-amber-500 bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-amber-700 dark:text-amber-400 font-extrabold text-xs uppercase tracking-wide flex items-center justify-center gap-2 transition"
             >
-              <span>📒 Charge to Pautang</span>
+              <span>📒 {t('ticket.charge_pautang')}</span>
             </button>
           </div>
         </div>
@@ -952,7 +954,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
               }}
               className="min-h-[44px] px-4 rounded-xl bg-[#006AFF] hover:bg-blue-600 active:scale-95 text-white font-black text-xs uppercase tracking-wide flex items-center gap-1.5 shrink-0 shadow-sm transition"
             >
-              <span>Charge {formatPesoExact(subtotal)} →</span>
+              <span>{t('ticket.cash_charge')} {formatPesoExact(subtotal)} →</span>
             </button>
           </div>
         </div>
@@ -970,10 +972,10 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
             <div className="p-3 border-b border-theme flex items-center justify-between bg-surface-muted">
               <div>
                 <div className="font-extrabold text-sm text-primary">
-                  Current Ticket ({totalItems} items)
+                  {t('ticket.title')} ({totalItems} {t('ticket.items')})
                 </div>
                 <div className="text-[11px] font-mono text-muted">
-                  Total: {formatPesoExact(subtotal)}
+                  {t('ticket.total')}: {formatPesoExact(subtotal)}
                 </div>
               </div>
               <button
@@ -997,7 +999,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                       {item.product.shortName}
                     </div>
                     <div className="text-[11px] font-mono text-muted">
-                      {formatPeso(item.product.sellingPrice)} each
+                      {formatPeso(item.product.sellingPrice)} {t('ticket.each')}
                     </div>
                   </div>
 
@@ -1033,7 +1035,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
             {/* Drawer Actions */}
             <div className="p-3 border-t border-theme bg-surface space-y-2">
               <div className="flex items-baseline justify-between py-1">
-                <span className="text-xs font-bold text-muted uppercase">Total Due</span>
+                <span className="text-xs font-bold text-muted uppercase">{t('ticket.total_due')}</span>
                 <span className="text-xl font-mono font-black text-primary">
                   {formatPesoExact(subtotal)}
                 </span>
@@ -1050,7 +1052,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                 className="w-full min-h-[52px] rounded-xl bg-[#006AFF] hover:bg-blue-600 active:scale-95 disabled:opacity-40 text-white font-black text-base uppercase tracking-wide flex items-center justify-center gap-2 shadow-sm transition"
               >
                 <Wallet className="w-5 h-5 stroke-[2.5]" />
-                <span>Cash / Charge {formatPesoExact(subtotal)}</span>
+                <span>{t('ticket.cash_charge')} {formatPesoExact(subtotal)}</span>
               </button>
 
               {/* Secondary Pautang */}
@@ -1063,7 +1065,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                 }}
                 className="w-full min-h-[44px] rounded-xl border-2 border-amber-500/70 hover:border-amber-500 bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 disabled:opacity-40 text-amber-700 dark:text-amber-400 font-extrabold text-xs uppercase tracking-wide flex items-center justify-center gap-2 transition"
               >
-                <span>📒 Charge to Pautang</span>
+                <span>📒 {t('ticket.charge_pautang')}</span>
               </button>
             </div>
           </div>

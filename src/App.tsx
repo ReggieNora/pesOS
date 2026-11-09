@@ -18,6 +18,8 @@ import { InventoryHub } from './components/InventoryHub';
 import { OwnerDashboard } from './components/OwnerDashboard';
 import { PautangHub } from './components/PautangHub';
 import { PesOSLogo } from './components/PesOSLogo';
+import { LanguageSwitcher } from './components/LanguageSwitcher';
+import { useLanguage } from './context/LanguageContext';
 import {
   CashCheckoutModal,
   PautangCheckoutModal,
@@ -101,6 +103,8 @@ function applyDocumentTheme(theme: ThemeMode, hasExplicitOverride: boolean) {
 }
 
 export function App() {
+  const { t } = useLanguage();
+
   // Theme state with localStorage('tingipos_theme') + prefers-color-scheme fallback
   const [theme, setTheme] = useState<ThemeMode>(resolveInitialTheme);
 
@@ -900,7 +904,7 @@ export function App() {
             </div>
           </div>
 
-          {/* Right: Subtle Floating Demo/Store Pill + Compact Theme Switcher [ ☀️ / 🌙 ] */}
+          {/* Right: Subtle Floating Demo/Store Pill + Language Switcher [ EN | CEB ] + Compact Theme Switcher [ ☀️ / 🌙 ] */}
           <div className="flex items-center gap-2 shrink-0">
             {environmentMode === 'DEMO' ? (
               <button
@@ -910,8 +914,8 @@ export function App() {
                 className="h-8 px-2.5 rounded-full bg-surface-muted border border-theme hover:border-amber-badge text-[10px] font-mono font-bold text-primary flex items-center gap-1.5 active:scale-95 transition shrink-0 shadow-sm cursor-pointer"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-btn" />
-                <span className="hidden sm:inline">Demo Mode •</span>
-                <span className="text-amber-badge font-extrabold">Exit Demo</span>
+                <span className="hidden sm:inline">{t('header.demo_mode')} •</span>
+                <span className="text-amber-badge font-extrabold">{t('header.exit_demo')}</span>
               </button>
             ) : (
               <button
@@ -927,16 +931,19 @@ export function App() {
               </button>
             )}
 
+            {/* Language Switcher [ EN | CEB ] */}
+            <LanguageSwitcher />
+
             <button
               type="button"
               onClick={handleToggleTheme}
               aria-label={
-                theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'
+                theme === 'dark' ? t('header.light_mode') : t('header.dark_mode')
               }
               title={
                 theme === 'dark'
-                  ? 'Switch to Daylight Light Mode'
-                  : 'Switch to Dark Mode'
+                  ? t('header.light_mode')
+                  : t('header.dark_mode')
               }
               className="w-8 h-8 rounded-lg bg-surface-muted border border-theme hover:border-[#006AFF] text-primary flex items-center justify-center active:scale-95 transition shrink-0 shadow-sm cursor-pointer"
             >
@@ -1228,12 +1235,17 @@ export function App() {
 
             {/* Line 2 (micro-text/sub-label): Switch User */}
             <span className="text-[9px] font-medium text-muted truncate max-w-full leading-none group-hover:text-[#006AFF] transition-colors">
-              Switch User
+              {t('nav.switch_user')}
             </span>
           </button>
 
           {/* Columns 2 - 5: Primary navigation tabs (Register, Inventory, Pautang, Dashboard) */}
-          {navItems.map(({ id, label, icon: Icon }) => {
+          {[
+            { id: 'REGISTER' as const, label: t('nav.register'), icon: ShoppingCart },
+            { id: 'INVENTORY' as const, label: t('nav.inventory'), icon: Package },
+            { id: 'PAUTANG_BOOK' as const, label: t('nav.pautang'), icon: Users },
+            { id: 'OWNER' as const, label: t('nav.dashboard'), icon: BarChart3 },
+          ].map(({ id, label, icon: Icon }) => {
             const isActive = activeTab === id;
             return (
               <button
@@ -1341,7 +1353,7 @@ export function App() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-bold text-primary flex items-center justify-between">
-                    <span>Switch User</span>
+                    <span>{t('header.switch_user')}</span>
                     <span className="text-[10px] font-mono text-muted">PIN Clock-In</span>
                   </div>
                   <p className="text-[11px] text-muted truncate">
@@ -1367,8 +1379,8 @@ export function App() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-bold text-primary flex items-center justify-between">
-                    <span>Lock Station</span>
-                    <span className="text-[10px] font-mono text-amber-badge font-bold">Lock Terminal</span>
+                    <span>{t('header.lock_station')}</span>
+                    <span className="text-[10px] font-mono text-amber-badge font-bold">{t('header.lock_terminal')}</span>
                   </div>
                   <p className="text-[11px] text-muted truncate">
                     Secure POS terminal; requires PIN to resume
@@ -1395,7 +1407,7 @@ export function App() {
 
             <div className="space-y-1">
               <h2 className="text-lg font-black text-primary tracking-tight">
-                POS Terminal Locked
+                {t('header.terminal_locked')}
               </h2>
               <p className="text-xs text-muted">
                 Active Session: <strong className="text-primary">{currentUser.name}</strong> ({currentUser.role})
@@ -1423,7 +1435,7 @@ export function App() {
                 </p>
               ) : (
                 <p className="text-[11px] text-muted mt-2 font-mono">
-                  Enter PIN to unlock ({users.map(u => `${u.name} ${u.pin}`).join(' • ')})
+                  {t('header.enter_pin')} ({users.map(u => `${u.name} ${u.pin}`).join(' • ')})
                 </p>
               )}
             </div>

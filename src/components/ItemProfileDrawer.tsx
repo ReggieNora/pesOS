@@ -14,6 +14,7 @@ import {
   Package, 
   AlertCircle 
 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ItemProfileDrawerProps {
   isOpen: boolean;
@@ -41,6 +42,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
   environmentMode = 'DEMO',
   onSave,
 }) => {
+  const { t } = useLanguage();
   const isNew = !product;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -195,10 +197,10 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
             />
             <div className="min-w-0">
               <h2 id="drawer-title" className="text-lg font-bold text-white tracking-wide truncate">
-                {isNew ? 'Create New Item' : 'Edit Item Profile'}
+                {isNew ? t('item_profile.create_title') : t('item_profile.edit_title')}
               </h2>
               <p className="text-xs text-slate-400 font-mono truncate">
-                {isNew ? 'Add inventory item to catalog' : `Item ID: ${product?.id}`}
+                {isNew ? t('item_profile.add_subtitle') : `Item ID: ${product?.id}`}
               </p>
             </div>
           </div>
@@ -230,14 +232,14 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
                 ) : (
                   <div className="flex flex-col items-center justify-center text-slate-500">
                     <Package className="w-12 h-12 stroke-1 mb-1" />
-                    <span className="text-[11px] font-medium tracking-wider uppercase text-slate-400">No Image</span>
+                    <span className="text-[11px] font-medium tracking-wider uppercase text-slate-400">{t('item_profile.no_image')}</span>
                   </div>
                 )}
 
                 {isUploading && (
                   <div className="absolute inset-0 bg-slate-900/80 flex flex-col items-center justify-center text-white backdrop-blur-xs">
                     <Loader2 className="w-7 h-7 animate-spin text-sky-400 mb-1" />
-                    <span className="text-xs">Processing...</span>
+                    <span className="text-xs">{t('item_profile.processing')}</span>
                   </div>
                 )}
               </div>
@@ -248,7 +250,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
                 className="absolute -bottom-2 -right-2 p-2.5 bg-sky-500 hover:bg-sky-400 active:scale-95 text-white rounded-full shadow-lg ring-4 ring-slate-900 transition-all cursor-pointer"
-                title="Upload or Take Photo"
+                title={t('item_profile.upload_photo')}
               >
                 <Camera className="w-4 h-4" />
               </button>
@@ -273,7 +275,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
                 className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer"
               >
                 <Upload className="w-3.5 h-3.5" />
-                <span>{imageUrl ? 'Replace Photo' : 'Upload / Camera'}</span>
+                <span>{imageUrl ? t('item_profile.replace_photo') : t('item_profile.upload_photo')}</span>
               </button>
               {imageUrl && (
                 <button
@@ -282,7 +284,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
                   className="flex items-center space-x-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-colors cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Remove</span>
+                  <span>{t('item_profile.remove_photo')}</span>
                 </button>
               )}
             </div>
@@ -295,20 +297,20 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
             )}
 
             <span className="text-[11px] text-slate-500 mt-2 text-center">
-              Syncs immediately to Register tile and receipt displays
+              {t('item_profile.sync_hint')}
             </span>
           </div>
 
           {/* CORE DETAILS */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800 pb-1">
-              Core Details
+              {t('item_profile.core_details')}
             </h3>
 
             {/* Full Name */}
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Item Full Name <span className="text-rose-400">*</span>
+                {t('item_profile.item_name')} <span className="text-rose-400">*</span>
               </label>
               <input
                 type="text"
@@ -328,7 +330,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
             {/* Display / Short Name on Register Tile */}
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Register Tile Short Name
+                {t('item_profile.tile_short_name')}
               </label>
               <input
                 type="text"
@@ -344,7 +346,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Category
+                  {t('item_profile.category')}
                 </label>
                 <select
                   value={category}
@@ -361,7 +363,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Unit Label
+                  {t('item_profile.unit_label')}
                 </label>
                 <input
                   type="text"
@@ -376,7 +378,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
             {/* Barcode / SKU */}
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Barcode / SKU
+                {t('item_profile.sku_barcode')}
               </label>
               <input
                 type="text"
@@ -391,13 +393,13 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
           {/* FINANCIALS & MARGIN */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800 pb-1">
-              Pricing & Margin
+              {t('item_profile.pricing_margin')}
             </h3>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Retail Selling Price (₱) <span className="text-rose-400">*</span>
+                  {t('finance.selling_price')} <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₱</span>
@@ -415,7 +417,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Cost Price / Puhunan (₱)
+                  {t('finance.cost_puhunan')} (₱)
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₱</span>
@@ -442,7 +444,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
               <div className="flex items-center space-x-2">
                 <TrendingUp className={`w-4 h-4 ${isProfit ? 'text-emerald-400' : 'text-rose-400 rotate-180'}`} />
                 <span className="text-xs font-medium">
-                  {isProfit ? 'Kita / Tubo per unit:' : 'Lugi per unit:'}
+                  {isProfit ? `${t('finance.kita_margin')}:` : `${t('finance.lugi_margin')}:`}
                 </span>
               </div>
               <div className="text-right">
@@ -459,13 +461,13 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
           {/* INVENTORY CONTROLS & FAVORITE */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800 pb-1">
-              Inventory & Pinning
+              {t('item_profile.inventory_pinning')}
             </h3>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Current Stock
+                  {t('finance.current_stock')}
                 </label>
                 <input
                   type="number"
@@ -478,7 +480,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Low Stock Alert At
+                  {t('finance.low_stock_alert')}
                 </label>
                 <input
                   type="number"
@@ -497,8 +499,8 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
                   <Star className={`w-4 h-4 ${isFavorite ? 'fill-amber-400' : ''}`} />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-white">Top Favorite</div>
-                  <div className="text-xs text-slate-400">Pin to top of Cashier Register quick tiles</div>
+                  <div className="text-sm font-semibold text-white">{t('item_profile.top_favorite')}</div>
+                  <div className="text-xs text-slate-400">{t('item_profile.top_favorite_desc')}</div>
                 </div>
               </div>
               <button
@@ -527,7 +529,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
             onClick={onClose}
             className="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
           >
-            Cancel
+            {t('item_profile.cancel')}
           </button>
           <button
             type="button"
@@ -536,7 +538,7 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
             className="flex items-center space-x-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-sky-500 hover:bg-sky-400 active:scale-95 text-white shadow-lg shadow-sky-500/20 transition-all disabled:opacity-50 cursor-pointer"
           >
             <Check className="w-4 h-4 stroke-[2.5]" />
-            <span>{isNew ? 'Create Item' : 'Save Changes'}</span>
+            <span>{isNew ? t('item_profile.create_item') : t('item_profile.save_changes')}</span>
           </button>
         </div>
       </div>
