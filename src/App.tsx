@@ -18,6 +18,7 @@ import { InventoryHub } from './components/InventoryHub';
 import { OwnerDashboard } from './components/OwnerDashboard';
 import { PautangHub } from './components/PautangHub';
 import { PesOSLogo } from './components/PesOSLogo';
+import { SplashScreen } from './components/SplashScreen';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { useLanguage } from './context/LanguageContext';
 import {
@@ -836,6 +837,9 @@ export function App() {
 
   return (
     <div className="min-h-[100dvh] w-full pos-glass-canvas text-primary flex flex-col items-center justify-start relative transition-colors duration-200">
+      {/* Animated Terminal Boot Splash Screen */}
+      <SplashScreen minDurationMs={800} />
+
       {/* Main POS Shell — Full-bleed edge-to-edge by default; optional Phone Frame via Dev Controls */}
       <div
         className={`w-full pos-glass-canvas text-primary flex flex-col relative [transform:translateZ(0)] transition-colors duration-200 ${
