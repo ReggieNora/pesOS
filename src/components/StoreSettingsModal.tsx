@@ -482,210 +482,240 @@ export const StoreSettingsModal: React.FC<StoreSettingsModalProps> = ({
       </div>
 
       {/* =========================================================================
-          ADD / EDIT WORKER MODAL
+          ADD / EDIT WORKER MODAL (RESPONSIVE VIEWPORT CONSTRAINED & PINNED FOOTER)
          ========================================================================= */}
       {isWorkerModalOpen && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150"
         >
-          <div className="w-full max-w-md bg-surface rounded-3xl border border-theme shadow-2xl p-5 space-y-4 text-left max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-2 border-b border-theme">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-blue-600/10 text-blue-600 flex items-center justify-center">
-                  <UserPlus className="w-4 h-4" />
+          <form
+            onSubmit={handleSaveWorker}
+            className="w-full max-w-lg max-h-[88dvh] sm:max-h-[85vh] bg-slate-900 border border-slate-800 rounded-2xl flex flex-col shadow-2xl overflow-hidden"
+          >
+            {/* Header (Pinned & Fixed) */}
+            <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center shrink-0">
+                  <UserPlus className="w-4 h-4 stroke-[2.25]" />
                 </div>
-                <h4 className="font-black text-sm text-primary">
-                  {editingStaffId ? 'Edit Worker Profile' : 'Add New Staff Member'}
-                </h4>
+                <div>
+                  <h4 className="font-bold text-base text-white tracking-tight">
+                    {editingStaffId ? 'Edit Worker Permissions' : 'Add Store Worker'}
+                  </h4>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-slate-400">
+                      {editingStaffId ? `Updating ${workerName || 'Worker'}` : 'Assign counter role & PIN'}
+                    </span>
+                    <span className="text-[10px] font-mono font-bold uppercase px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                      {workerRole === 'manager' ? 'Manager' : 'Cashier'}
+                    </span>
+                  </div>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsWorkerModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-surface-muted flex items-center justify-center text-muted hover:text-primary cursor-pointer"
+                className="w-8 h-8 rounded-xl bg-slate-800/80 hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveWorker} className="space-y-4">
+            {/* Scrollable Body (overflow-y-auto) */}
+            <div className="p-5 overflow-y-auto space-y-4 flex-1 overscroll-contain text-left">
               {formError && (
-                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-500 text-xs font-bold">
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold">
                   {formError}
                 </div>
               )}
 
-              {/* Worker Name */}
+              {/* Full Name input */}
               <div>
-                <label className="block text-xs font-bold text-primary mb-1">
+                <label className="block text-xs font-bold text-slate-200 mb-1.5">
                   Worker Name *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder='e.g., "Ate May", "Kuya Mark"'
+                  placeholder="e.g., Ate May, Kuya Mark"
                   value={workerName}
                   onChange={(e) => setWorkerName(e.target.value)}
-                  className="w-full h-11 px-3 rounded-xl bg-surface-muted border border-theme text-xs font-medium text-primary focus:outline-none focus:border-[#2563EB]"
+                  className="w-full h-11 px-3.5 rounded-xl bg-slate-800/90 border border-slate-700 text-sm font-medium text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
                 />
               </div>
 
               {/* 4-Digit Numeric PIN */}
               <div>
-                <label className="block text-xs font-bold text-primary mb-1">
-                  4-Digit Numeric PIN *
+                <label className="block text-xs font-bold text-slate-200 mb-1.5 flex items-center justify-between">
+                  <span>4-Digit Numeric PIN *</span>
+                  <span className="text-[11px] font-mono text-slate-400">Shift Clock-In</span>
                 </label>
                 <input
                   type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   maxLength={4}
                   required
                   placeholder="••••"
                   value={workerPin}
                   onChange={(e) => setWorkerPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  className="w-full h-11 px-3 rounded-xl bg-surface-muted border border-theme font-mono font-bold text-base tracking-widest text-primary focus:outline-none focus:border-[#2563EB]"
+                  className="w-full h-11 px-3.5 rounded-xl bg-slate-800/90 border border-slate-700 font-mono font-bold text-base tracking-widest text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
                 />
-                <p className="text-[10px] text-muted mt-1 font-mono">
-                  Used by the cashier to clock in and unlock the terminal.
+                <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                  Used by this worker to clock in, switch cashier, and unlock the terminal.
                 </p>
               </div>
 
-              {/* Role Selection */}
+              {/* Role Preset Selector */}
               <div>
-                <label className="block text-xs font-bold text-primary mb-1.5">
+                <label className="block text-xs font-bold text-slate-200 mb-1.5">
                   Role Preset
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
                     onClick={() => handleRoleChange('cashier')}
-                    className={`p-2.5 rounded-xl border text-left transition ${
+                    className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                       workerRole === 'cashier'
-                        ? 'bg-blue-600/15 border-blue-600 text-blue-600 dark:text-blue-400 font-bold'
-                        : 'bg-surface-muted border-theme text-muted font-medium'
+                        ? 'bg-blue-600/20 border-blue-500 text-white'
+                        : 'bg-slate-800/60 border-slate-700/80 text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    <div className="text-xs font-bold">Cashier (Tindero)</div>
-                    <div className="text-[10px] text-muted mt-0.5">Counter sales &amp; pautang list</div>
+                    <div className="text-xs font-bold flex items-center justify-between">
+                      <span>Cashier (Tindero)</span>
+                      {workerRole === 'cashier' && <Check className="w-3.5 h-3.5 text-blue-400" />}
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">Counter sales &amp; pautang charges</div>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleRoleChange('manager')}
-                    className={`p-2.5 rounded-xl border text-left transition ${
+                    className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                       workerRole === 'manager'
-                        ? 'bg-purple-600/15 border-purple-600 text-purple-600 dark:text-purple-400 font-bold'
-                        : 'bg-surface-muted border-theme text-muted font-medium'
+                        ? 'bg-purple-600/20 border-purple-500 text-white'
+                        : 'bg-slate-800/60 border-slate-700/80 text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    <div className="text-xs font-bold">Manager / Trusted</div>
-                    <div className="text-[10px] text-muted mt-0.5">Inventory &amp; debt settlements</div>
+                    <div className="text-xs font-bold flex items-center justify-between">
+                      <span>Manager / Trusted</span>
+                      {workerRole === 'manager' && <Check className="w-3.5 h-3.5 text-purple-400" />}
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">Inventory, pricing &amp; settlements</div>
                   </button>
                 </div>
               </div>
 
-              {/* Permission Toggles */}
-              <div className="space-y-2 pt-1 border-t border-theme">
-                <span className="block text-xs font-extrabold uppercase tracking-wider text-muted">
+              {/* Granular Permissions Section */}
+              <div className="space-y-2 pt-2 border-t border-slate-800">
+                <span className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
                   Granular Permissions
                 </span>
 
                 <div className="space-y-2">
                   {/* can_checkout */}
-                  <label className="flex items-center justify-between p-2 rounded-xl bg-surface-muted border border-theme cursor-pointer">
-                    <span className="text-xs text-primary font-medium">
-                      Process Cash/GCash Sales
-                    </span>
+                  <label className="flex items-center justify-between p-3 rounded-xl bg-slate-800/60 border border-slate-700/80 hover:border-slate-600 cursor-pointer transition">
+                    <div>
+                      <span className="text-xs text-white font-medium block">
+                        Process Cash/GCash Sales
+                      </span>
+                      <span className="text-[11px] text-slate-400">Operate the register and complete transactions</span>
+                    </div>
                     <input
                       type="checkbox"
                       checked={permissions.can_checkout}
                       onChange={() => togglePermission('can_checkout')}
-                      className="w-4 h-4 rounded text-blue-600 accent-blue-600"
+                      className="w-4 h-4 rounded text-blue-600 accent-blue-600 shrink-0 ml-3"
                     />
                   </label>
 
                   {/* can_record_pautang */}
-                  <label className="flex items-center justify-between p-2 rounded-xl bg-surface-muted border border-theme cursor-pointer">
-                    <span className="text-xs text-primary font-medium">
-                      Record Pautang Charges
-                    </span>
+                  <label className="flex items-center justify-between p-3 rounded-xl bg-slate-800/60 border border-slate-700/80 hover:border-slate-600 cursor-pointer transition">
+                    <div>
+                      <span className="text-xs text-white font-medium block">
+                        Record Pautang Charges
+                      </span>
+                      <span className="text-[11px] text-slate-400">Add sales to neighborhood suki credit ledger</span>
+                    </div>
                     <input
                       type="checkbox"
                       checked={permissions.can_record_pautang}
                       onChange={() => togglePermission('can_record_pautang')}
-                      className="w-4 h-4 rounded text-blue-600 accent-blue-600"
+                      className="w-4 h-4 rounded text-blue-600 accent-blue-600 shrink-0 ml-3"
                     />
                   </label>
 
                   {/* can_settle_pautang */}
-                  <label className="flex items-center justify-between p-2 rounded-xl bg-surface-muted border border-theme cursor-pointer">
+                  <label className="flex items-center justify-between p-3 rounded-xl bg-slate-800/60 border border-slate-700/80 hover:border-slate-600 cursor-pointer transition">
                     <div>
-                      <span className="text-xs text-primary font-medium block">
+                      <span className="text-xs text-white font-medium block">
                         Accept Pautang Payments
                       </span>
-                      <span className="text-[10px] text-muted">Mark debts as paid and log cash repayments</span>
+                      <span className="text-[11px] text-slate-400">Mark debts as paid and log cash repayments</span>
                     </div>
                     <input
                       type="checkbox"
                       checked={permissions.can_settle_pautang}
                       onChange={() => togglePermission('can_settle_pautang')}
-                      className="w-4 h-4 rounded text-blue-600 accent-blue-600"
+                      className="w-4 h-4 rounded text-blue-600 accent-blue-600 shrink-0 ml-3"
                     />
                   </label>
 
                   {/* can_edit_inventory */}
-                  <label className="flex items-center justify-between p-2 rounded-xl bg-surface-muted border border-theme cursor-pointer">
+                  <label className="flex items-center justify-between p-3 rounded-xl bg-slate-800/60 border border-slate-700/80 hover:border-slate-600 cursor-pointer transition">
                     <div>
-                      <span className="text-xs text-primary font-medium block">
+                      <span className="text-xs text-white font-medium block">
                         Edit Stock &amp; Item Pricing
                       </span>
-                      <span className="text-[10px] text-muted">Add new items and adjust inventory quantities</span>
+                      <span className="text-[11px] text-slate-400">Add new items and adjust stock quantities</span>
                     </div>
                     <input
                       type="checkbox"
                       checked={permissions.can_edit_inventory}
                       onChange={() => togglePermission('can_edit_inventory')}
-                      className="w-4 h-4 rounded text-blue-600 accent-blue-600"
+                      className="w-4 h-4 rounded text-blue-600 accent-blue-600 shrink-0 ml-3"
                     />
                   </label>
 
                   {/* can_view_margins */}
-                  <label className="flex items-center justify-between p-2 rounded-xl bg-surface-muted border border-theme cursor-pointer">
+                  <label className="flex items-center justify-between p-3 rounded-xl bg-slate-800/60 border border-slate-700/80 hover:border-slate-600 cursor-pointer transition">
                     <div>
-                      <span className="text-xs text-primary font-medium block">
+                      <span className="text-xs text-white font-medium block">
                         View Cost Prices &amp; Daily Profit
                       </span>
-                      <span className="text-[10px] text-muted">See wholesale puhunan and gansya percentages</span>
+                      <span className="text-[11px] text-slate-400">See wholesale puhunan and gansya percentages</span>
                     </div>
                     <input
                       type="checkbox"
                       checked={permissions.can_view_margins}
                       onChange={() => togglePermission('can_view_margins')}
-                      className="w-4 h-4 rounded text-blue-600 accent-blue-600"
+                      className="w-4 h-4 rounded text-blue-600 accent-blue-600 shrink-0 ml-3"
                     />
                   </label>
                 </div>
               </div>
+            </div>
 
-              {/* Footer Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-theme">
-                <button
-                  type="button"
-                  onClick={() => setIsWorkerModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-surface-muted text-xs font-bold text-muted hover:text-primary transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-blue-700 text-white text-xs font-black uppercase tracking-wider shadow-sm active:scale-95 transition disabled:opacity-50 cursor-pointer"
-                >
-                  {isSubmitting ? 'Saving...' : editingStaffId ? 'Update Worker' : 'Add Worker'}
-                </button>
-              </div>
-            </form>
-          </div>
+            {/* Sticky Footer with Action Buttons */}
+            <div className="px-5 py-3 border-t border-slate-800 bg-slate-950/80 backdrop-blur-md flex items-center justify-end gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsWorkerModalOpen(false)}
+                className="px-4 py-2 text-slate-400 hover:text-white text-sm transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl text-sm shadow-md active:scale-95 transition disabled:opacity-50 cursor-pointer"
+              >
+                {isSubmitting ? 'Saving...' : 'Save Worker'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </NativeModal>
