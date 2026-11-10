@@ -488,7 +488,7 @@ export const StoreSettingsModal: React.FC<StoreSettingsModalProps> = ({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm p-4 sm:p-6 flex justify-center items-start"
+          className="fixed inset-0 z-50 overflow-y-auto no-scrollbar bg-black/80 backdrop-blur-sm p-4 sm:p-6 flex justify-center items-start"
         >
           {/* Modal Dialog Card */}
           <form
