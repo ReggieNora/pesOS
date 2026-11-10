@@ -35,8 +35,11 @@ interface AuthOnboardingModalProps {
   onSignInLiveStore: (
     storeOrPhone: string,
     pin: string
-  ) => { ok: true } | { ok: false; error: string };
-  onCompleteOnboarding: (payload: LiveOnboardingPayload) => void;
+  ) =>
+    | { ok: true }
+    | { ok: false; error: string }
+    | Promise<{ ok: true } | { ok: false; error: string }>;
+  onCompleteOnboarding: (payload: LiveOnboardingPayload) => void | Promise<void>;
   onClose?: () => void;
 }
 
@@ -58,8 +61,11 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
   const [view, setView] = useState<GatewayView>('GATEWAY');
   const [screen, setScreen] = useState<WizardScreen>(1);
 
-  // Wizard Screen 1: Single-question Store Name
+  // Wizard Screen 1: Store Name, Owner Name, Barangay/Location
   const [storeName, setStoreName] = useState('');
+  const [ownerName, setOwnerName] = useState('');
+  const [barangayLocation, setBarangayLocation] = useState('');
+  const [ownerPhone, setOwnerPhone] = useState('');
 
   // Wizard Screen 2: Create Owner PIN + Quick Confirmation
   const [pinStage, setPinStage] = useState<PinStage>('CREATE');
@@ -73,6 +79,7 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
   );
   const [signInPin, setSignInPin] = useState('');
   const [signInError, setSignInError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -84,6 +91,7 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
       setPinMismatchError('');
       setSignInPin('');
       setSignInError('');
+      setIsLoading(false);
       if (existingLiveStore?.profile.storeName) {
         setSignInLookup(existingLiveStore.profile.storeName);
       }
@@ -150,31 +158,51 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
   };
 
   // Handle keypad digits for Sign-In Screen
-  const handleSignInPinDigit = (digit: string) => {
+  const handleSignInPinDigit = async (digit: string) => {
+    if (isLoading) return;
     triggerHapticFeedback('tap');
     setSignInError('');
     const next = (signInPin + digit).slice(0, 4);
     setSignInPin(next);
 
     if (next.length === 4) {
-      const res = onSignInLiveStore(signInLookup, next);
-      if (!res.ok) {
-        triggerHapticFeedback('warning');
-        setSignInError(res.error);
+      setIsLoading(true);
+      try {
+        const res = await onSignInLiveStore(signInLookup, next);
+        if (!res.ok) {
+          triggerHapticFeedback('warning');
+          setSignInError(res.error);
+          setSignInPin('');
+        } else {
+          triggerHapticFeedback('success');
+        }
+      } catch (err: any) {
+        setSignInError(err?.message || 'Failed to authenticate store.');
         setSignInPin('');
-      } else {
-        triggerHapticFeedback('success');
+      } finally {
+        setIsLoading(false);
       }
     }
   };
 
-  const handleFinishOnboarding = (preloadCatalog: boolean) => {
+  const handleFinishOnboarding = async (preloadCatalog: boolean) => {
+    if (isLoading) return;
     triggerHapticFeedback('success');
-    onCompleteOnboarding({
-      storeName: storeName.trim() || "Aling Nena's Sari-Sari",
-      ownerPin: firstPin || '9999',
-      preloadStarterCatalog: preloadCatalog,
-    });
+    setIsLoading(true);
+    try {
+      await onCompleteOnboarding({
+        storeName: storeName.trim() || "Aling Nena's Sari-Sari",
+        ownerName: ownerName.trim() || 'Store Owner',
+        ownerPhone: ownerPhone.trim() || undefined,
+        barangayCity: barangayLocation.trim() || undefined,
+        ownerPin: firstPin || '9999',
+        preloadStarterCatalog: preloadCatalog,
+      });
+    } catch (err: any) {
+      console.error('Failed to complete onboarding:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -392,7 +420,7 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
               </nav>
             </div>
 
-            {/* SCREEN 1: "Store Name" */}
+            {/* SCREEN 1: "Store Details (Store Name, Owner Name, Barangay Location)" */}
             {screen === 1 && (
               <form
                 method="POST"
@@ -406,47 +434,91 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
                   setConfirmPin('');
                   setScreen(2);
                 }}
-                className="space-y-5 pt-1"
+                className="space-y-4 pt-1"
               >
-                <div className="space-y-1.5">
-                  <div className="w-11 h-11 rounded-2xl bg-[#2563EB]/15 border border-[#2563EB]/40 text-[#2563EB] flex items-center justify-center">
+                <div className="space-y-1">
+                  <div className="w-10 h-10 rounded-xl bg-[#2563EB]/15 border border-[#2563EB]/40 text-[#2563EB] flex items-center justify-center">
                     <Store className="w-5 h-5" />
                   </div>
                   <label
                     htmlFor="wizard-store-name-input"
-                    className="block text-xl font-black text-primary tracking-tight pt-1"
+                    className="block text-lg font-black text-primary tracking-tight pt-1"
                   >
-                    What is your Store Name?
+                    30-Second Store Setup
                   </label>
                   <p className="text-xs text-muted">
-                    This will appear on your top register bar and customer SMS
-                    receipts.
+                    Set up your sari-sari store terminal and isolated cloud database.
                   </p>
                 </div>
 
-                <div>
-                  <input
-                    id="wizard-store-name-input"
-                    name="organization"
-                    type="text"
-                    autoComplete="organization"
-                    enterKeyHint="next"
-                    autoFocus
-                    required
-                    value={storeName}
-                    onChange={(e) => setStoreName(e.target.value)}
-                    placeholder="e.g., Aling Nena's Sari-Sari"
-                    className="w-full min-h-[58px] px-4 rounded-2xl bg-surface-muted border-2 border-theme focus:border-[#2563EB] text-lg font-extrabold text-primary placeholder:text-muted/60 focus:outline-none transition"
-                  />
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-1">
+                      Store Name <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      id="wizard-store-name-input"
+                      name="organization"
+                      type="text"
+                      autoComplete="organization"
+                      enterKeyHint="next"
+                      autoFocus
+                      required
+                      value={storeName}
+                      onChange={(e) => setStoreName(e.target.value)}
+                      placeholder="e.g., Aling Nena's Sari-Sari"
+                      className="w-full min-h-[48px] px-3.5 rounded-xl bg-surface-muted border-2 border-theme focus:border-[#2563EB] text-sm font-bold text-primary placeholder:text-muted/60 focus:outline-none transition"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-1">
+                        Owner Name
+                      </label>
+                      <input
+                        type="text"
+                        value={ownerName}
+                        onChange={(e) => setOwnerName(e.target.value)}
+                        placeholder="e.g., Maria Nora"
+                        className="w-full min-h-[44px] px-3 rounded-xl bg-surface-muted border border-theme focus:border-[#2563EB] text-xs font-semibold text-primary placeholder:text-muted/60 focus:outline-none transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-1">
+                        Mobile Number
+                      </label>
+                      <input
+                        type="tel"
+                        value={ownerPhone}
+                        onChange={(e) => setOwnerPhone(e.target.value)}
+                        placeholder="0917XXXXXXX"
+                        className="w-full min-h-[44px] px-3 rounded-xl bg-surface-muted border border-theme focus:border-[#2563EB] text-xs font-semibold text-primary placeholder:text-muted/60 focus:outline-none transition"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-1">
+                      Barangay / Location
+                    </label>
+                    <input
+                      type="text"
+                      value={barangayLocation}
+                      onChange={(e) => setBarangayLocation(e.target.value)}
+                      placeholder="e.g., Brgy. San Antonio, Pasig"
+                      className="w-full min-h-[44px] px-3.5 rounded-xl bg-surface-muted border border-theme focus:border-[#2563EB] text-xs font-semibold text-primary placeholder:text-muted/60 focus:outline-none transition"
+                    />
+                  </div>
                 </div>
 
                 <button
                   type="submit"
                   disabled={!isStoreNameValid}
-                  className="w-full min-h-[56px] rounded-2xl bg-[#2563EB] hover:bg-blue-700 text-white font-black text-base uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full min-h-[50px] rounded-xl bg-[#2563EB] hover:bg-blue-700 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] transition disabled:opacity-40 disabled:cursor-not-allowed mt-2"
                 >
-                  <span>Next</span>
-                  <ArrowRight className="w-5 h-5 stroke-[2.5]" />
+                  <span>Next: Set 4-Digit PIN</span>
+                  <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                 </button>
               </form>
             )}
@@ -712,7 +784,11 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
               </div>
 
               <div aria-live="polite" className="min-h-[18px] text-center">
-                {signInError ? (
+                {isLoading ? (
+                  <span className="text-xs font-bold text-sky-500 animate-pulse">
+                    Authenticating store...
+                  </span>
+                ) : signInError ? (
                   <span className="text-xs font-bold text-red-500">
                     {signInError}
                   </span>

@@ -19,6 +19,7 @@ import {
   UserProfile,
 } from '../types/pos';
 import { formatPesoExact, loadSnapshotFromLocal, saveSnapshotToIndexedDB } from './localDb';
+import { registerNewStore, setActiveStoreSession } from './supabaseStoreService';
 
 const ENV_MODE_KEY = 'tingipos_env_mode';
 const ACTIVE_SESSION_KEY = 'tingipos_active_session';
@@ -269,10 +270,10 @@ export function authenticateLiveStore(
   };
 }
 
-export function provisionLiveStoreAccount(payload: LiveOnboardingPayload): {
+export async function provisionLiveStoreAccount(payload: LiveOnboardingPayload): Promise<{
   snapshot: StoreStateSnapshot;
   activeUser: UserProfile;
-} {
+}> {
   const nowTime = new Date().toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
@@ -286,8 +287,20 @@ export function provisionLiveStoreAccount(payload: LiveOnboardingPayload): {
       ? cleanStoreName.split("'")[0].trim()
       : 'Store Owner');
 
+  // Register in Supabase stores table & batch starter products tagged with store_id
+  const regResult = await registerNewStore({
+    storeName: cleanStoreName,
+    ownerName: inferredOwnerName,
+    ownerPhone: payload.ownerPhone?.trim(),
+    barangayLocation: payload.barangayCity?.trim(),
+    pin: payload.ownerPin.trim() || '9999',
+    preloadStarterCatalog: Boolean(payload.preloadStarterCatalog),
+  });
+
+  const storeId = regResult.store.id;
+
   const storeProfile: StoreProfile = {
-    id: `store-live-${Date.now()}`,
+    id: storeId,
     storeName: cleanStoreName,
     barangayCity: payload.barangayCity?.trim() || 'Local Barangay Store',
     ownerPhone: payload.ownerPhone?.trim() || '',
@@ -297,7 +310,7 @@ export function provisionLiveStoreAccount(payload: LiveOnboardingPayload): {
   };
 
   const ownerUser: UserProfile = {
-    id: 'usr-live-owner',
+    id: `usr-${storeId}-owner`,
     name: storeProfile.ownerName,
     role: 'OWNER',
     pin: payload.ownerPin.trim() || '9999',
@@ -313,7 +326,7 @@ export function provisionLiveStoreAccount(payload: LiveOnboardingPayload): {
         ? payload.cashierPin.trim()
         : '1234';
     const cashierUser: UserProfile = {
-      id: 'usr-live-cashier-1',
+      id: `usr-${storeId}-cashier-1`,
       name: payload.cashierName.trim(),
       role: 'CASHIER',
       pin: cashierPin,
@@ -329,7 +342,7 @@ export function provisionLiveStoreAccount(payload: LiveOnboardingPayload): {
   const openingCash = Math.max(0, Number(payload.openingDrawerCash) || 1000);
 
   const shiftOne: ShiftRecord = {
-    id: 'shf-live-001',
+    id: `shf-${storeId}-001`,
     cashierId: initialOperator.id,
     cashierName: initialOperator.name,
     pin: initialOperator.pin,
@@ -345,7 +358,7 @@ export function provisionLiveStoreAccount(payload: LiveOnboardingPayload): {
 
   const initialAuditLogs: AuditLogEntry[] = [
     {
-      id: `aud-live-init-1`,
+      id: `aud-${storeId}-init-1`,
       timestamp: nowDateStr,
       actorName: ownerUser.name,
       actorRole: 'OWNER',
@@ -358,7 +371,7 @@ export function provisionLiveStoreAccount(payload: LiveOnboardingPayload): {
 
   if (payload.preloadStarterCatalog) {
     initialAuditLogs.unshift({
-      id: `aud-live-init-2`,
+      id: `aud-${storeId}-init-2`,
       timestamp: nowDateStr,
       actorName: ownerUser.name,
       actorRole: 'OWNER',
@@ -382,6 +395,7 @@ export function provisionLiveStoreAccount(payload: LiveOnboardingPayload): {
 
   persistEnvironmentSnapshot('LIVE', snapshot);
   saveEnvironmentMode('LIVE');
+  setActiveStoreSession(storeId, storeProfile.storeName, regResult.store);
 
   return {
     snapshot,

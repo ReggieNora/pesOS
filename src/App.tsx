@@ -61,6 +61,19 @@ import {
   setActiveSession,
 } from './utils/dataProvider';
 import {
+  signInToStore,
+  getActiveStoreId,
+  setActiveStoreSession,
+  fetchStoreProducts,
+  fetchStoreCustomers,
+  insertStoreProduct,
+  updateStoreProduct,
+  insertStoreCustomer,
+  insertStoreSalesTicket,
+  insertStorePautangLedger,
+  mapRowToProduct,
+} from './utils/supabaseStoreService';
+import {
   formatPesoExact,
   triggerHapticFeedback,
 } from './utils/localDb';
@@ -274,6 +287,63 @@ export function App() {
     auditLogs,
   ]);
 
+  // Sync scoped Live Store items and customers from Supabase on mount or store switch
+  useEffect(() => {
+    if (environmentMode === 'LIVE' && storeProfile.id && !storeProfile.id.startsWith('demo')) {
+      Promise.all([
+        fetchStoreProducts(storeProfile.id),
+        fetchStoreCustomers(storeProfile.id),
+      ])
+        .then(([prodRes, custRes]) => {
+          if (prodRes.data && prodRes.data.length > 0) {
+            setProducts((prev) => {
+              const remoteMap = new Map(prodRes.data.map((p: any) => [p.id, p]));
+              const merged: Product[] = prodRes.data.map((p: any) => {
+                const existing = prev.find((item) => item.id === p.id);
+                return mapRowToProduct(p, existing);
+              });
+              for (const localItem of prev) {
+                if (!remoteMap.has(localItem.id)) {
+                  merged.push(localItem);
+                }
+              }
+              return merged;
+            });
+          }
+
+          if (custRes.data && custRes.data.length > 0) {
+            setCustomers((prev) => {
+              const remoteMap = new Map(custRes.data.map((c: any) => [c.id, c]));
+              const merged = custRes.data.map((c: any) => {
+                const existing = prev.find((item) => item.id === c.id);
+                return {
+                  id: c.id,
+                  name: c.name,
+                  alias: existing?.alias || 'Regular',
+                  phone: c.phone || '',
+                  creditLimit: Number(c.credit_limit) || 1000,
+                  currentBalance: Number(c.current_balance) || 0,
+                  status: existing?.status || 'Good Standing',
+                  oldestDebtDays: existing?.oldestDebtDays ?? 0,
+                  oldestDebtAt: existing?.oldestDebtAt || 'Active',
+                  lastTransactionNote: existing?.lastTransactionNote || c.notes || 'Registered',
+                };
+              });
+              for (const localCust of prev) {
+                if (!remoteMap.has(localCust.id)) {
+                  merged.push(localCust);
+                }
+              }
+              return merged;
+            });
+          }
+        })
+        .catch((err) => {
+          console.warn('Initial store sync notice:', err);
+        });
+    }
+  }, [environmentMode, storeProfile.id]);
+
   const applyEnvironmentSnapshot = (
     mode: EnvironmentMode,
     snap: ReturnType<typeof loadEnvironmentSnapshot>,
@@ -322,17 +392,94 @@ export function App() {
     setIsAuthSplashOpen(true);
   };
 
-  const handleSignInLiveStore = (storeOrPhone: string, pin: string) => {
+  const handleSignInLiveStore = async (storeOrPhone: string, pin: string) => {
+    // 1. Authenticate via Supabase stores table or local store cache
+    const remoteAuth = await signInToStore(storeOrPhone, pin);
+    if (remoteAuth.ok && remoteAuth.store) {
+      const store = remoteAuth.store;
+      let liveSnapshot = getExistingLiveStoreSnapshot();
+
+      // If switching stores or snapshot doesn't match this store_id, fetch fresh scoped data
+      if (!liveSnapshot || liveSnapshot.profile.id !== store.id) {
+        try {
+          const [prodsRes, custsRes] = await Promise.all([
+            fetchStoreProducts(store.id),
+            fetchStoreCustomers(store.id),
+          ]);
+
+          const scopedProducts: Product[] = (prodsRes.data && prodsRes.data.length > 0)
+            ? prodsRes.data.map((p: any) => mapRowToProduct(p))
+            : (liveSnapshot?.products || []);
+
+          const scopedCustomers: Customer[] = (custsRes.data && custsRes.data.length > 0)
+            ? custsRes.data.map((c: any) => ({
+                id: c.id,
+                name: c.name,
+                alias: 'Regular',
+                phone: c.phone || '',
+                creditLimit: Number(c.credit_limit) || 1000,
+                currentBalance: Number(c.current_balance) || 0,
+                status: 'Good Standing',
+                oldestDebtDays: 0,
+                oldestDebtAt: 'Active',
+                lastTransactionNote: c.notes || 'Registered',
+              }))
+            : (liveSnapshot?.customers || []);
+
+          const storeProfile: StoreProfile = {
+            id: store.id,
+            storeName: store.store_name,
+            barangayCity: store.barangay_location || 'Local Barangay Store',
+            ownerPhone: store.phone || '',
+            ownerName: store.owner_name,
+            createdAt: store.created_at || 'Today',
+            environment: 'LIVE',
+          };
+
+          const ownerUser: UserProfile = {
+            id: `usr-${store.id}-owner`,
+            name: store.owner_name,
+            role: 'OWNER',
+            pin: pin.trim(),
+            badge: `${store.store_name} • Owner`,
+          };
+
+          liveSnapshot = {
+            profile: storeProfile,
+            users: [ownerUser],
+            products: scopedProducts,
+            customers: scopedCustomers,
+            shifts: liveSnapshot?.shifts || [],
+            transactions: liveSnapshot?.transactions || [],
+            creditPayments: liveSnapshot?.creditPayments || [],
+            auditLogs: liveSnapshot?.auditLogs || [],
+          };
+        } catch (fetchErr) {
+          console.warn('Could not fetch scoped Supabase records, falling back to local snapshot:', fetchErr);
+        }
+      }
+
+      if (liveSnapshot) {
+        applyEnvironmentSnapshot('LIVE', liveSnapshot, liveSnapshot.users[0]);
+        setActiveSession('LIVE');
+        setIsAuthSplashOpen(false);
+        showToast(`Welcome to ${store.store_name}!`);
+        return { ok: true as const };
+      }
+    }
+
+    // 2. Fallback to existing local snapshot authentication
     const auth = authenticateLiveStore(storeOrPhone, pin);
     if (!auth.ok) return auth;
     applyEnvironmentSnapshot('LIVE', auth.snapshot, auth.matchedUser);
     setActiveSession('LIVE');
     setIsAuthSplashOpen(false);
+    showToast(`Welcome back to ${auth.snapshot.profile.storeName}!`);
     return { ok: true as const };
   };
 
-  const handleCompleteOnboarding = (payload: LiveOnboardingPayload) => {
-    const { snapshot, activeUser } = provisionLiveStoreAccount(payload);
+  const handleCompleteOnboarding = async (payload: LiveOnboardingPayload) => {
+    const { snapshot, activeUser } = await provisionLiveStoreAccount(payload);
     applyEnvironmentSnapshot('LIVE', snapshot, activeUser);
     setActiveSession('LIVE');
     setIsAuthSplashOpen(false);
@@ -538,6 +685,33 @@ export function App() {
     );
 
     setTransactions((prev) => [newTx, ...prev]);
+
+    // Strict store-scoped Supabase sync for Live Store mode
+    if (environmentMode === 'LIVE' && storeProfile.id) {
+      insertStoreSalesTicket(storeProfile.id, {
+        items: newTx.items,
+        subtotal: newTx.totalAmount,
+        total: newTx.totalAmount,
+        payment_method: type === 'PAUTANG' ? 'credit' : 'cash',
+        amount_tendered: options?.cashTendered,
+        change_due: options?.changeGiven,
+        cashier_name: currentUser.name,
+      }).catch((err) => {
+        console.warn('Supabase sales ticket sync notice:', err);
+      });
+
+      if (type === 'PAUTANG' && options?.customer) {
+        insertStorePautangLedger(storeProfile.id, {
+          customer_id: options.customer.id,
+          amount: subtotal,
+          type: 'debt',
+          notes: `Pautang Sale: ${cart.map((i) => `${i.qty}x ${i.product.shortName}`).join(', ')}`,
+        }).catch((err) => {
+          console.warn('Supabase pautang ledger sync notice:', err);
+        });
+      }
+    }
+
     setCart([]);
     return newTx;
   };
@@ -621,6 +795,17 @@ export function App() {
     };
 
     setCustomers((prev) => [newCust, ...prev]);
+
+    if (environmentMode === 'LIVE' && storeProfile.id) {
+      insertStoreCustomer(storeProfile.id, {
+        name,
+        phone,
+        credit_limit: creditLimit,
+      }).catch((err) => {
+        console.warn('Supabase customer insert notice:', err);
+      });
+    }
+
     setAuditLogs((prev) => [
       {
         id: `aud-${Date.now()}`,
@@ -666,6 +851,17 @@ export function App() {
     };
 
     setCreditPayments((prev) => [paymentEntry, ...prev]);
+
+    if (environmentMode === 'LIVE' && storeProfile.id) {
+      insertStorePautangLedger(storeProfile.id, {
+        customer_id: target.id,
+        amount: amountPaid,
+        type: 'payment',
+        notes: note.trim() || `Repayment of ${formatPesoExact(amountPaid)}`,
+      }).catch((err) => {
+        console.warn('Supabase repayment ledger sync notice:', err);
+      });
+    }
 
     setCustomers((prev) =>
       prev.map((c) =>
@@ -1036,6 +1232,12 @@ export function App() {
                 const target = products.find((p) => p.id === productId);
                 if (!target) return;
 
+                if (environmentMode === 'LIVE' && storeProfile.id) {
+                  updateStoreProduct(storeProfile.id, productId, updates).catch((err) => {
+                    console.warn('Supabase product update notice:', err);
+                  });
+                }
+
                 setProducts((prev) =>
                   prev.map((p) =>
                     p.id === productId
@@ -1066,6 +1268,18 @@ export function App() {
                 showToast(`Saved details for ${updates.name}`);
               }}
               onSaveProductProfile={(savedProduct, isNew) => {
+                if (environmentMode === 'LIVE' && storeProfile.id) {
+                  if (isNew) {
+                    insertStoreProduct(storeProfile.id, savedProduct).catch((err) => {
+                      console.warn('Supabase product insert notice:', err);
+                    });
+                  } else {
+                    updateStoreProduct(storeProfile.id, savedProduct.id, savedProduct).catch((err) => {
+                      console.warn('Supabase product update notice:', err);
+                    });
+                  }
+                }
+
                 if (isNew) {
                   setProducts((prev) => [savedProduct, ...prev]);
                   setAuditLogs((prev) => [
