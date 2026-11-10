@@ -5,6 +5,8 @@ import {
   Check,
   Delete,
   KeyRound,
+  LogOut,
+  MapPin,
   Moon,
   PackageCheck,
   Plus,
@@ -13,6 +15,7 @@ import {
   Sparkles,
   Store,
   Sun,
+  User,
   Zap,
 } from 'lucide-react';
 import { TOP_20_SARI_SARI_STARTER_ITEMS } from '../data/mockSariSariData';
@@ -40,10 +43,18 @@ interface AuthOnboardingModalProps {
     | { ok: false; error: string }
     | Promise<{ ok: true } | { ok: false; error: string }>;
   onCompleteOnboarding: (payload: LiveOnboardingPayload) => void | Promise<void>;
+  onGoogleSignIn?: () => Promise<void> | void;
+  isGoogleLoading?: boolean;
+  googleUser?: {
+    id: string;
+    email?: string;
+    user_metadata?: { full_name?: string; name?: string; avatar_url?: string };
+  } | null;
+  onSignOutGoogle?: () => Promise<void> | void;
   onClose?: () => void;
 }
 
-type GatewayView = 'GATEWAY' | 'WIZARD' | 'SIGN_IN';
+type GatewayView = 'GATEWAY' | 'WIZARD' | 'SIGN_IN' | 'GOOGLE_SETUP';
 type WizardScreen = 1 | 2 | 3;
 type PinStage = 'CREATE' | 'CONFIRM';
 
@@ -56,6 +67,10 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
   onResetDemoData,
   onSignInLiveStore,
   onCompleteOnboarding,
+  onGoogleSignIn,
+  isGoogleLoading,
+  googleUser,
+  onSignOutGoogle,
   onClose,
 }) => {
   const [view, setView] = useState<GatewayView>('GATEWAY');
@@ -66,6 +81,7 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
   const [ownerName, setOwnerName] = useState('');
   const [barangayLocation, setBarangayLocation] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
+  const [preloadCatalog, setPreloadCatalog] = useState(true);
 
   // Wizard Screen 2: Create Owner PIN + Quick Confirmation
   const [pinStage, setPinStage] = useState<PinStage>('CREATE');
@@ -83,7 +99,18 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setView('GATEWAY');
+      if (googleUser) {
+        setView('GOOGLE_SETUP');
+        const inferred =
+          googleUser.user_metadata?.full_name ||
+          googleUser.user_metadata?.name ||
+          (googleUser.email ? googleUser.email.split('@')[0] : '') ||
+          'Store Owner';
+        setOwnerName(inferred);
+        setStoreName((prev) => prev || `${inferred}'s Store`);
+      } else {
+        setView('GATEWAY');
+      }
       setScreen(1);
       setPinStage('CREATE');
       setFirstPin('');
@@ -96,7 +123,7 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
         setSignInLookup(existingLiveStore.profile.storeName);
       }
     }
-  }, [isOpen, existingLiveStore]);
+  }, [isOpen, existingLiveStore, googleUser]);
 
   if (!isOpen) return null;
 
@@ -185,7 +212,7 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
     }
   };
 
-  const handleFinishOnboarding = async (preloadCatalog: boolean) => {
+  const handleFinishOnboarding = async (preloadCatalogParam: boolean) => {
     if (isLoading) return;
     triggerHapticFeedback('success');
     setIsLoading(true);
@@ -196,10 +223,33 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
         ownerPhone: ownerPhone.trim() || undefined,
         barangayCity: barangayLocation.trim() || undefined,
         ownerPin: firstPin || '9999',
-        preloadStarterCatalog: preloadCatalog,
+        preloadStarterCatalog: preloadCatalogParam,
+        ownerId: googleUser?.id,
+        ownerEmail: googleUser?.email,
       });
     } catch (err: any) {
       console.error('Failed to complete onboarding:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFinishGoogleSetup = async () => {
+    if (isLoading) return;
+    triggerHapticFeedback('success');
+    setIsLoading(true);
+    try {
+      await onCompleteOnboarding({
+        storeName: storeName.trim() || `${ownerName}'s Store`,
+        ownerName: ownerName.trim() || 'Store Owner',
+        barangayCity: barangayLocation.trim() || undefined,
+        ownerPin: '9999',
+        preloadStarterCatalog: preloadCatalog,
+        ownerId: googleUser?.id,
+        ownerEmail: googleUser?.email,
+      });
+    } catch (err: any) {
+      console.error('Failed to complete Google store onboarding:', err);
     } finally {
       setIsLoading(false);
     }
@@ -314,19 +364,59 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
               <div className="border-t border-theme w-full" />
             </div>
 
-            {/* Option B (Live App): [ 🔑 Sign In ] and [ ➕ Create New Store ] */}
+            {/* Option B (Live App with Google OAuth): [ Continue with Google ] */}
             <div className="space-y-2.5">
+              <button
+                type="button"
+                onClick={async () => {
+                  triggerHapticFeedback('tap');
+                  if (onGoogleSignIn) {
+                    await onGoogleSignIn();
+                  }
+                }}
+                disabled={isGoogleLoading || isLoading}
+                className="w-full min-h-[52px] rounded-2xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white font-extrabold text-sm flex items-center justify-center gap-3 shadow-md active:scale-[0.98] transition cursor-pointer disabled:opacity-50"
+              >
+                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.03h3.89c2.28-2.1 3.65-5.2 3.65-9.12z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.89-3.03c-1.08.72-2.45 1.16-4.04 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.13C3.27 21.43 7.35 24 12 24z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.28 14.29c-.25-.72-.38-1.49-.38-2.29s.13-1.57.38-2.29V6.58H1.25C.45 8.17 0 9.99 0 12s.45 3.83 1.25 5.42l4.03-3.13z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.27 2.57 1.25 6.58l4.03 3.13c.95-2.83 3.6-4.96 6.72-4.96z"
+                  />
+                </svg>
+                <span>{isGoogleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
+              </button>
+
+              <div className="relative flex items-center justify-center my-1">
+                <div className="border-t border-theme/60 w-full" />
+                <span className="bg-surface px-2.5 text-[10px] font-mono uppercase text-muted shrink-0">
+                  or sign in with PIN
+                </span>
+                <div className="border-t border-theme/60 w-full" />
+              </div>
+
               <button
                 type="button"
                 onClick={() => {
                   triggerHapticFeedback('tap');
                   setView('SIGN_IN');
                 }}
-                className="w-full min-h-[52px] rounded-2xl bg-[#2563EB] hover:bg-blue-700 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] transition"
+                className="w-full min-h-[48px] rounded-2xl bg-[#2563EB] hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] transition cursor-pointer"
               >
                 <KeyRound className="w-4 h-4 stroke-[2.5]" />
                 <span>
-                  🔑 Sign In
+                  🔑 Sign In with PIN
                   {existingLiveStore
                     ? ` (${existingLiveStore.profile.storeName})`
                     : ''}
@@ -344,10 +434,10 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
                   setScreen(1);
                   setView('WIZARD');
                 }}
-                className="w-full min-h-[48px] rounded-2xl bg-surface-muted border border-theme hover:border-[#2563EB] text-primary font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 active:scale-[0.98] transition"
+                className="w-full min-h-[44px] rounded-2xl bg-surface-muted border border-theme hover:border-[#2563EB] text-primary font-extrabold text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 active:scale-[0.98] transition cursor-pointer"
               >
                 <Plus className="w-4 h-4 text-[#2563EB] stroke-[2.5]" />
-                <span>➕ Create New Store (30-Sec Setup)</span>
+                <span>➕ Manual Setup (No Google Account)</span>
               </button>
             </div>
           </div>
@@ -877,6 +967,138 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
                 <span>Try Demo Mode →</span>
               </button>
             </div>
+          </div>
+        )}
+
+        {/* =========================================================
+            VIEW 4: GOOGLE USER STORE SETUP
+           ========================================================= */}
+        {view === 'GOOGLE_SETUP' && (
+          <div className="p-6 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-theme">
+              <div className="flex items-center gap-2.5 min-w-0">
+                {googleUser?.user_metadata?.avatar_url ? (
+                  <img
+                    src={googleUser.user_metadata.avatar_url}
+                    alt="Google Profile"
+                    className="w-10 h-10 rounded-full border border-theme shadow-sm shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-blue-600/10 text-[#2563EB] flex items-center justify-center font-bold text-sm shrink-0">
+                    {googleUser?.email ? googleUser.email.charAt(0).toUpperCase() : 'G'}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="text-xs font-black text-primary truncate flex items-center gap-1.5">
+                    <span className="truncate">{ownerName || 'Store Owner'}</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase bg-blue-500/15 text-blue-600 dark:text-blue-400 shrink-0">
+                      Google
+                    </span>
+                  </div>
+                  <p className="text-[11px] font-mono text-muted truncate">
+                    {googleUser?.email}
+                  </p>
+                </div>
+              </div>
+
+              {onSignOutGoogle && (
+                <button
+                  type="button"
+                  onClick={onSignOutGoogle}
+                  className="text-[11px] font-bold text-muted hover:text-red-500 flex items-center gap-1 transition shrink-0 cursor-pointer"
+                  title="Use different account"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Switch</span>
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <h2 className="text-base font-black text-primary">
+                Name Your Sari-Sari Store
+              </h2>
+              <p className="text-xs text-muted">
+                Your store and inventory will be securely linked to your Google account.
+              </p>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (isStoreNameValid) {
+                  handleFinishGoogleSetup();
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label
+                  htmlFor="google-store-name"
+                  className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1.5"
+                >
+                  Store Name *
+                </label>
+                <div className="relative">
+                  <input
+                    id="google-store-name"
+                    type="text"
+                    required
+                    value={storeName}
+                    onChange={(e) => setStoreName(e.target.value)}
+                    placeholder="e.g. Aling Nena's Sari-Sari Store"
+                    className="w-full h-12 pl-10 pr-3 rounded-2xl bg-surface-muted border border-theme focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 text-primary font-bold text-sm outline-none transition"
+                  />
+                  <Store className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="google-location"
+                  className="block text-xs font-mono font-bold uppercase tracking-wider text-muted mb-1.5"
+                >
+                  Barangay / Location
+                </label>
+                <div className="relative">
+                  <input
+                    id="google-location"
+                    type="text"
+                    value={barangayLocation}
+                    onChange={(e) => setBarangayLocation(e.target.value)}
+                    placeholder="e.g. Brgy. Poblacion, Cebu City"
+                    className="w-full h-12 pl-10 pr-3 rounded-2xl bg-surface-muted border border-theme focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20 text-primary font-medium text-sm outline-none transition"
+                  />
+                  <MapPin className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-surface-muted border border-theme space-y-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={preloadCatalog}
+                    onChange={(e) => setPreloadCatalog(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#2563EB] focus:ring-0 cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-primary">
+                    Pre-load Top 20 Sari-Sari Starter Items
+                  </span>
+                </label>
+                <p className="text-[11px] text-muted pl-6">
+                  Includes Nescafe 3in1, Kopiko, Silver Swan, Lucky Me, and standard retail SRPs.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={!isStoreNameValid || isLoading}
+                className="w-full min-h-[52px] rounded-2xl bg-[#2563EB] hover:bg-blue-700 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition disabled:opacity-50 cursor-pointer"
+              >
+                <Rocket className="w-5 h-5 stroke-[2.5]" />
+                <span>{isLoading ? 'Setting Up Store...' : 'Launch Store & Open POS'}</span>
+              </button>
+            </form>
           </div>
         )}
       </div>

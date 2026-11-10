@@ -295,6 +295,8 @@ export async function provisionLiveStoreAccount(payload: LiveOnboardingPayload):
     barangayLocation: payload.barangayCity?.trim(),
     pin: payload.ownerPin.trim() || '9999',
     preloadStarterCatalog: Boolean(payload.preloadStarterCatalog),
+    ownerId: payload.ownerId,
+    ownerEmail: payload.ownerEmail,
   });
 
   const storeId = regResult.store.id;
@@ -307,6 +309,8 @@ export async function provisionLiveStoreAccount(payload: LiveOnboardingPayload):
     ownerName: inferredOwnerName,
     createdAt: nowDateStr,
     environment: 'LIVE',
+    ownerId: payload.ownerId,
+    ownerEmail: payload.ownerEmail,
   };
 
   const ownerUser: UserProfile = {

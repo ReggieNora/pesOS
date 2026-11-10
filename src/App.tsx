@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   BarChart3,
+  ChevronDown,
   Eye,
   Lock,
+  LogOut,
   Moon,
   Package,
   RefreshCw,
@@ -44,6 +46,7 @@ import {
   Product,
   ShiftRecord,
   StoreProfile,
+  StoreStateSnapshot,
   TransactionRecord,
   UserProfile,
 } from './types/pos';
@@ -64,6 +67,7 @@ import {
   signInToStore,
   getActiveStoreId,
   setActiveStoreSession,
+  clearActiveStoreSession,
   fetchStoreProducts,
   fetchStoreCustomers,
   insertStoreProduct,
@@ -72,7 +76,11 @@ import {
   insertStoreSalesTicket,
   insertStorePautangLedger,
   mapRowToProduct,
+  signInWithGoogle,
+  signOutAuth,
+  fetchStoreForUser,
 } from './utils/supabaseStoreService';
+import { supabase } from './utils/supabase';
 import {
   formatPesoExact,
   triggerHapticFeedback,
@@ -262,6 +270,39 @@ export function App() {
       setToastMessage((prev) => (prev === msg ? null : prev));
     }, 3200);
   };
+
+  // Google OAuth & Store Session State
+  const [googleUser, setGoogleUser] = useState<any>(null);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isStoreSettingsOpen, setIsStoreSettingsOpen] = useState(false);
+
+  // Google OAuth Auth State Listener & Session Initialization
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        setGoogleUser(session.user);
+        await handleUserStoreLinkage(session.user);
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+        setGoogleUser(session.user);
+        await handleUserStoreLinkage(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        setGoogleUser(null);
+        clearActiveSession();
+        clearActiveStoreSession();
+        setIsAuthSplashOpen(true);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Persist active environment snapshot to IndexedDB + LocalStorage (+ Supabase if configured in LIVE mode)
   useEffect(() => {
@@ -478,8 +519,124 @@ export function App() {
     return { ok: true as const };
   };
 
+  const handleUserStoreLinkage = async (user: any) => {
+    try {
+      const { store } = await fetchStoreForUser(user.id, user.email);
+      if (store) {
+        setActiveStoreSession(store.id, store.store_name || store.name || 'Store', store);
+
+        const [prodsRes, custsRes] = await Promise.all([
+          fetchStoreProducts(store.id),
+          fetchStoreCustomers(store.id),
+        ]);
+
+        let liveSnapshot = getExistingLiveStoreSnapshot();
+        const scopedProducts: Product[] =
+          prodsRes.data && prodsRes.data.length > 0
+            ? prodsRes.data.map((p: any) => mapRowToProduct(p))
+            : liveSnapshot?.products || [];
+
+        const scopedCustomers: Customer[] =
+          custsRes.data && custsRes.data.length > 0
+            ? custsRes.data.map((c: any) => ({
+                id: c.id,
+                name: c.name,
+                alias: 'Regular',
+                phone: c.phone || '',
+                creditLimit: Number(c.credit_limit) || 1000,
+                currentBalance: Number(c.current_balance) || 0,
+                status: 'Good Standing',
+                oldestDebtDays: 0,
+                oldestDebtAt: 'Active',
+                lastTransactionNote: c.notes || 'Registered',
+              }))
+            : liveSnapshot?.customers || [];
+
+        const ownerName =
+          store.owner_name ||
+          user.user_metadata?.full_name ||
+          user.user_metadata?.name ||
+          (user.email ? user.email.split('@')[0] : '') ||
+          'Store Owner';
+
+        const storeProfile: StoreProfile = {
+          id: store.id,
+          storeName: store.store_name || store.name || "Aling Nena's Sari-Sari",
+          barangayCity: store.barangay_location || store.location || 'Local Barangay Store',
+          ownerPhone: store.phone || '',
+          ownerName,
+          createdAt: store.created_at || 'Today',
+          environment: 'LIVE',
+          ownerId: user.id,
+          ownerEmail: user.email,
+        };
+
+        const ownerUser: UserProfile = {
+          id: `usr-${user.id}`,
+          name: ownerName,
+          role: 'OWNER',
+          pin: '9999',
+          badge: `${storeProfile.storeName} • Owner`,
+        };
+
+        const newSnapshot: StoreStateSnapshot = {
+          profile: storeProfile,
+          users: [ownerUser],
+          products: scopedProducts,
+          customers: scopedCustomers,
+          shifts: liveSnapshot?.shifts || [],
+          transactions: liveSnapshot?.transactions || [],
+          creditPayments: liveSnapshot?.creditPayments || [],
+          auditLogs: liveSnapshot?.auditLogs || [],
+        };
+
+        applyEnvironmentSnapshot('LIVE', newSnapshot, ownerUser);
+        setActiveSession('LIVE');
+        setIsAuthSplashOpen(false);
+        showToast(`Welcome back, ${storeProfile.ownerName}! (${storeProfile.storeName})`);
+      } else {
+        // No store linked yet: prompt Quick Store Setup modal
+        setIsAuthSplashOpen(true);
+      }
+    } catch (err) {
+      console.error('Error linking user to store:', err);
+      setIsAuthSplashOpen(true);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      const { error } = await signInWithGoogle();
+      if (error) {
+        showToast(error.message || 'Google sign-in error');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Google sign-in error');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    triggerHapticFeedback('tap');
+    setIsUserMenuOpen(false);
+    setIsStoreSettingsOpen(false);
+    await signOutAuth();
+    setGoogleUser(null);
+    clearActiveSession();
+    clearActiveStoreSession();
+    setIsAuthSplashOpen(true);
+    showToast('Signed out of pesOS.');
+  };
+
   const handleCompleteOnboarding = async (payload: LiveOnboardingPayload) => {
-    const { snapshot, activeUser } = await provisionLiveStoreAccount(payload);
+    const finalPayload: LiveOnboardingPayload = {
+      ...payload,
+      ownerId: payload.ownerId || googleUser?.id,
+      ownerEmail: payload.ownerEmail || googleUser?.email,
+    };
+    const { snapshot, activeUser } = await provisionLiveStoreAccount(finalPayload);
     applyEnvironmentSnapshot('LIVE', snapshot, activeUser);
     setActiveSession('LIVE');
     setIsAuthSplashOpen(false);
@@ -688,25 +845,34 @@ export function App() {
 
     // Strict store-scoped Supabase sync for Live Store mode
     if (environmentMode === 'LIVE' && storeProfile.id) {
-      insertStoreSalesTicket(storeProfile.id, {
-        items: newTx.items,
-        subtotal: newTx.totalAmount,
-        total: newTx.totalAmount,
-        payment_method: type === 'PAUTANG' ? 'credit' : 'cash',
-        amount_tendered: options?.cashTendered,
-        change_due: options?.changeGiven,
-        cashier_name: currentUser.name,
-      }).catch((err) => {
+      const activeUserId = googleUser?.id || currentUser.id;
+      insertStoreSalesTicket(
+        storeProfile.id,
+        {
+          items: newTx.items,
+          subtotal: newTx.totalAmount,
+          total: newTx.totalAmount,
+          payment_method: type === 'PAUTANG' ? 'credit' : 'cash',
+          amount_tendered: options?.cashTendered,
+          change_due: options?.changeGiven,
+          cashier_name: currentUser.name,
+        },
+        activeUserId
+      ).catch((err) => {
         console.warn('Supabase sales ticket sync notice:', err);
       });
 
       if (type === 'PAUTANG' && options?.customer) {
-        insertStorePautangLedger(storeProfile.id, {
-          customer_id: options.customer.id,
-          amount: subtotal,
-          type: 'debt',
-          notes: `Pautang Sale: ${cart.map((i) => `${i.qty}x ${i.product.shortName}`).join(', ')}`,
-        }).catch((err) => {
+        insertStorePautangLedger(
+          storeProfile.id,
+          {
+            customer_id: options.customer.id,
+            amount: subtotal,
+            type: 'debt',
+            notes: `Pautang Sale: ${cart.map((i) => `${i.qty}x ${i.product.shortName}`).join(', ')}`,
+          },
+          activeUserId
+        ).catch((err) => {
           console.warn('Supabase pautang ledger sync notice:', err);
         });
       }
@@ -797,11 +963,15 @@ export function App() {
     setCustomers((prev) => [newCust, ...prev]);
 
     if (environmentMode === 'LIVE' && storeProfile.id) {
-      insertStoreCustomer(storeProfile.id, {
-        name,
-        phone,
-        credit_limit: creditLimit,
-      }).catch((err) => {
+      insertStoreCustomer(
+        storeProfile.id,
+        {
+          name,
+          phone,
+          credit_limit: creditLimit,
+        },
+        googleUser?.id || currentUser.id
+      ).catch((err) => {
         console.warn('Supabase customer insert notice:', err);
       });
     }
@@ -853,12 +1023,16 @@ export function App() {
     setCreditPayments((prev) => [paymentEntry, ...prev]);
 
     if (environmentMode === 'LIVE' && storeProfile.id) {
-      insertStorePautangLedger(storeProfile.id, {
-        customer_id: target.id,
-        amount: amountPaid,
-        type: 'payment',
-        notes: note.trim() || `Repayment of ${formatPesoExact(amountPaid)}`,
-      }).catch((err) => {
+      insertStorePautangLedger(
+        storeProfile.id,
+        {
+          customer_id: target.id,
+          amount: amountPaid,
+          type: 'payment',
+          notes: note.trim() || `Repayment of ${formatPesoExact(amountPaid)}`,
+        },
+        googleUser?.id || currentUser.id
+      ).catch((err) => {
         console.warn('Supabase repayment ledger sync notice:', err);
       });
     }
@@ -1118,17 +1292,75 @@ export function App() {
                 <span className="text-amber-badge font-extrabold">{t('header.exit_demo')}</span>
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={handleExitDemoOrStore}
-                title="Switch Store or Exit Live Session"
-                className="h-8 px-2.5 rounded-full bg-emerald-btn/20 border border-emerald-btn/60 text-emerald-btn text-[11px] font-mono font-extrabold flex items-center gap-1.5 active:scale-95 transition shrink-0 shadow-sm cursor-pointer"
-              >
-                <Store className="w-3.5 h-3.5" />
-                <span className="truncate max-w-[110px]">
-                  {storeProfile.storeName}
-                </span>
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsStoreSettingsOpen((prev) => !prev)}
+                  title="Store Settings & Profile"
+                  className="h-8 px-2.5 rounded-full bg-emerald-btn/20 border border-emerald-btn/60 text-emerald-btn text-[11px] font-mono font-extrabold flex items-center gap-1.5 active:scale-95 transition shrink-0 shadow-sm cursor-pointer"
+                >
+                  <Store className="w-3.5 h-3.5" />
+                  <span className="truncate max-w-[110px]">
+                    {storeProfile.storeName}
+                  </span>
+                  <ChevronDown className="w-3 h-3 opacity-70" />
+                </button>
+
+                {isStoreSettingsOpen && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-surface border border-theme shadow-2xl p-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-3 text-left"
+                  >
+                    <div className="flex items-center gap-2.5 pb-2 border-b border-theme">
+                      {googleUser?.user_metadata?.avatar_url ? (
+                        <img
+                          src={googleUser.user_metadata.avatar_url}
+                          alt="Google Profile"
+                          className="w-9 h-9 rounded-full border border-theme shrink-0"
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-blue-600/10 text-[#2563EB] flex items-center justify-center font-bold text-xs shrink-0">
+                          {googleUser?.email ? googleUser.email.charAt(0).toUpperCase() : 'G'}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-black text-primary truncate">
+                          {storeProfile.storeName}
+                        </div>
+                        <p className="text-[11px] font-mono text-muted truncate">
+                          {googleUser?.email || storeProfile.ownerName || 'Live Store Owner'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1 text-xs">
+                      <div className="flex items-center justify-between text-muted text-[11px]">
+                        <span>Barangay:</span>
+                        <span className="font-bold text-primary truncate max-w-[140px]">
+                          {storeProfile.barangayCity || 'Local Store'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-muted text-[11px]">
+                        <span>Store ID:</span>
+                        <span className="font-mono text-[10px] text-muted truncate max-w-[130px]">
+                          {storeProfile.id}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-1 border-t border-theme space-y-1.5">
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        className="w-full py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>Sign Out of Store</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Language Switcher [ EN | CEB ] */}
@@ -1233,7 +1465,7 @@ export function App() {
                 if (!target) return;
 
                 if (environmentMode === 'LIVE' && storeProfile.id) {
-                  updateStoreProduct(storeProfile.id, productId, updates).catch((err) => {
+                  updateStoreProduct(storeProfile.id, productId, updates, googleUser?.id || currentUser.id).catch((err) => {
                     console.warn('Supabase product update notice:', err);
                   });
                 }
@@ -1269,12 +1501,13 @@ export function App() {
               }}
               onSaveProductProfile={(savedProduct, isNew) => {
                 if (environmentMode === 'LIVE' && storeProfile.id) {
+                  const activeUserId = googleUser?.id || currentUser.id;
                   if (isNew) {
-                    insertStoreProduct(storeProfile.id, savedProduct).catch((err) => {
+                    insertStoreProduct(storeProfile.id, savedProduct, activeUserId).catch((err) => {
                       console.warn('Supabase product insert notice:', err);
                     });
                   } else {
-                    updateStoreProduct(storeProfile.id, savedProduct.id, savedProduct).catch((err) => {
+                    updateStoreProduct(storeProfile.id, savedProduct.id, savedProduct, activeUserId).catch((err) => {
                       console.warn('Supabase product update notice:', err);
                     });
                   }
@@ -1539,8 +1772,8 @@ export function App() {
                       {isOwner ? 'Owner' : 'Cashier'}
                     </span>
                   </div>
-                  <p className="text-[10px] font-mono text-muted">
-                    Shift #1 Active • PIN: {currentUser.pin}
+                  <p className="text-[10px] font-mono text-muted truncate">
+                    {googleUser?.email ? `${googleUser.email} • ` : ''}Shift #1 • PIN: {currentUser.pin}
                   </p>
                 </div>
               </div>
@@ -1602,6 +1835,28 @@ export function App() {
                   </div>
                   <p className="text-[11px] text-muted truncate">
                     Secure POS terminal; requires PIN to resume
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 3: [ Sign Out ] */}
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="w-full p-2.5 rounded-xl bg-surface-muted hover:bg-red-500/10 border border-theme hover:border-red-500/30 flex items-center gap-3 transition active:scale-[0.99] text-left cursor-pointer group"
+              >
+                <div className="w-9 h-9 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <LogOut className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-bold text-red-600 dark:text-red-400 flex items-center justify-between">
+                    <span>Sign Out</span>
+                    {googleUser && (
+                      <span className="text-[10px] font-mono text-muted">Google</span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted truncate">
+                    {googleUser?.email ? `Sign out of ${googleUser.email}` : 'Exit session and return to entry screen'}
                   </p>
                 </div>
               </button>
@@ -1701,6 +1956,10 @@ export function App() {
         onResetDemoData={handleResetDemoData}
         onSignInLiveStore={handleSignInLiveStore}
         onCompleteOnboarding={handleCompleteOnboarding}
+        onGoogleSignIn={handleGoogleSignIn}
+        isGoogleLoading={isGoogleLoading}
+        googleUser={googleUser}
+        onSignOutGoogle={handleSignOut}
         onClose={hasActiveSession() ? () => setIsAuthSplashOpen(false) : undefined}
       />
 

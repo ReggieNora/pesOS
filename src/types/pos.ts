@@ -171,6 +171,8 @@ export interface StoreProfile {
   ownerName: string;
   createdAt: string;
   environment: EnvironmentMode;
+  ownerId?: string;
+  ownerEmail?: string;
 }
 
 export interface StoreStateSnapshot {
@@ -195,4 +197,6 @@ export interface LiveOnboardingPayload {
   createCashierProfile?: boolean;
   cashierName?: string;
   cashierPin?: string;
+  ownerId?: string;
+  ownerEmail?: string;
 }
