@@ -120,7 +120,7 @@ export const PautangHub: React.FC<PautangHubProps> = React.memo(({
         setPinError('');
       } else {
         triggerHapticFeedback('warning');
-        setPinError(`Incorrect Owner PIN (Default: ${ownerPin})`);
+        setPinError('Incorrect Owner PIN. Please try again.');
         setPinInput('');
       }
     }
@@ -713,7 +713,7 @@ export const PautangHub: React.FC<PautangHubProps> = React.memo(({
                   <div className="pt-2 border-t border-theme/60 flex items-center justify-between text-[11px] text-muted">
                     <span className="flex items-center gap-1.5">
                       <KeyRound className="w-3.5 h-3.5 text-amber-badge" />
-                      <span>Tap to unlock slider with Owner PIN ({ownerPin})</span>
+                      <span>Tap to unlock slider with Owner PIN</span>
                     </span>
                     <span className="text-[#006AFF] font-bold underline font-mono">
                       Unlock →
@@ -950,7 +950,7 @@ export const PautangHub: React.FC<PautangHubProps> = React.memo(({
                 </p>
               ) : (
                 <p className="text-[11px] text-muted mt-2 font-mono">
-                  Enter 4-digit Owner PIN (Default: {ownerPin})
+                  Enter 4-digit Owner PIN to authorize
                 </p>
               )}
             </div>

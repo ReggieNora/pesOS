@@ -476,7 +476,7 @@ export const PautangCheckoutModal: React.FC<PautangModalProps> = ({
                       setPinInput(e.target.value);
                       setPinError('');
                     }}
-                    placeholder={`Owner PIN (${ownerPin}) to override`}
+                    placeholder="Owner PIN to override"
                     className="w-full min-h-[42px] pl-8 pr-2 rounded-xl bg-surface border border-theme font-mono text-xs text-primary"
                   />
                 </div>
@@ -489,7 +489,7 @@ export const PautangCheckoutModal: React.FC<PautangModalProps> = ({
                       setPinError('');
                     } else {
                       triggerHapticFeedback('warning');
-                      setPinError(`Enter Owner PIN ${ownerPin}`);
+                      setPinError('Invalid Owner PIN. Please try again.');
                     }
                   }}
                   className="min-h-[42px] px-3 rounded-xl bg-amber-badge hover:opacity-95 text-white font-bold text-xs uppercase shrink-0"
@@ -501,7 +501,7 @@ export const PautangCheckoutModal: React.FC<PautangModalProps> = ({
             {pinError && <p className="text-[11px] text-amber-badge font-semibold">{pinError}</p>}
             {overrideUnlocked && (
               <p className="text-[11px] text-emerald-btn font-bold">
-                ✓ Owner PIN {ownerPin} Verified — One-time credit ceiling override unlocked.
+                ✓ Owner PIN Verified — One-time credit ceiling override unlocked.
               </p>
             )}
           </div>

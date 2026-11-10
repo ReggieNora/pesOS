@@ -26,7 +26,7 @@ export const TRANSLATIONS: Record<Locale, Record<string, string>> = {
     'header.terminal_locked': 'POS Terminal Locked',
     'header.enter_pin': 'Enter PIN to unlock station',
     'header.active_session': 'Active Session',
-    'header.owner_pin_hint': 'Owner (9999) • Cashier (1234)',
+    'header.owner_pin_hint': 'Owner or Cashier PIN',
     'header.invalid_pin': 'Incorrect PIN code. Try again.',
     'header.light_mode': 'Switch to Daylight Light Mode',
     'header.dark_mode': 'Switch to Dark Mode',
@@ -183,7 +183,7 @@ export const TRANSLATIONS: Record<Locale, Record<string, string>> = {
     'dashboard.audit_logs': 'Shift Audit Trail',
     'dashboard.access_denied_title': 'Owner Access Required',
     'dashboard.access_denied_desc': 'Only the store owner can view financial analytics, wholesale supplier costs, and shift audit discrepancy reports.',
-    'dashboard.unlock_owner_pin': 'Unlock with Owner PIN (9999)',
+    'dashboard.unlock_owner_pin': 'Unlock with Owner PIN',
 
     // Common
     'common.save': 'Save',
@@ -221,7 +221,7 @@ export const TRANSLATIONS: Record<Locale, Record<string, string>> = {
     'header.terminal_locked': 'Nakakandado ang Tindahan',
     'header.enter_pin': 'Isulod ang PIN para maablihan',
     'header.active_session': 'Kasamtangang Naggamit',
-    'header.owner_pin_hint': 'Tag-iya (9999) • Tindera (1234)',
+    'header.owner_pin_hint': 'PIN sa Tag-iya o Tindera',
     'header.invalid_pin': 'Sayop ang PIN. Sulayi pag-usab.',
     'header.light_mode': 'Hayag nga Panagway',
     'header.dark_mode': 'Ngitngit nga Panagway',
@@ -378,7 +378,7 @@ export const TRANSLATIONS: Record<Locale, Record<string, string>> = {
     'dashboard.audit_logs': 'Talaan sa Kausaban sa Tindahan',
     'dashboard.access_denied_title': 'Kinahanglan ang Tag-iya',
     'dashboard.access_denied_desc': 'Ang tag-iya ra sa tindahan ang makakita sa taho sa kwarta, puhonan sa komprador, ug listahan sa discrepancy sa shift.',
-    'dashboard.unlock_owner_pin': 'Ablihi gamit ang PIN sa Tag-iya (9999)',
+    'dashboard.unlock_owner_pin': 'Ablihi gamit ang PIN sa Tag-iya',
 
     // Common
     'common.save': 'Tipigi',

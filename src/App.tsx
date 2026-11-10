@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  ArrowLeft,
   BarChart3,
   ChevronDown,
   Eye,
@@ -8,6 +9,7 @@ import {
   Moon,
   Package,
   RefreshCw,
+  ShieldCheck,
   ShoppingCart,
   Store,
   Sun,
@@ -276,6 +278,11 @@ export function App() {
   const [isStationLocked, setIsStationLocked] = useState(false);
   const [lockPinInput, setLockPinInput] = useState('');
   const [lockPinError, setLockPinError] = useState('');
+
+  // Owner Access Restriction Gate Modal State
+  const [isOwnerUnlockModalOpen, setIsOwnerUnlockModalOpen] = useState(false);
+  const [ownerUnlockPinInput, setOwnerUnlockPinInput] = useState('');
+  const [ownerUnlockPinError, setOwnerUnlockPinError] = useState('');
 
   // Toast Banner
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -848,6 +855,49 @@ export function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isStationLocked, lockPinInput, users, currentUser, ownerStaff, staffList]);
+
+  // Owner access gate PIN keypad & verification handling
+  const handleOwnerUnlockDigit = (digit: string) => {
+    if (ownerUnlockPinInput.length >= 4) return;
+    triggerHapticFeedback('tap');
+    const nextPin = ownerUnlockPinInput + digit;
+    setOwnerUnlockPinInput(nextPin);
+    setOwnerUnlockPinError('');
+
+    if (nextPin.length === 4) {
+      const realOwnerPin = ownerStaff.pin || users.find((u) => u.role === 'OWNER')?.pin;
+      if (nextPin === realOwnerPin) {
+        triggerHapticFeedback('success');
+        handleSwitchStaff(ownerStaff);
+        setIsOwnerUnlockModalOpen(false);
+        setOwnerUnlockPinInput('');
+        setOwnerUnlockPinError('');
+        showToast('Owner access granted!');
+      } else {
+        triggerHapticFeedback('warning');
+        setOwnerUnlockPinError('Incorrect Owner PIN. Please try again.');
+        setOwnerUnlockPinInput('');
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!isOwnerUnlockModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key >= '0' && e.key <= '9') {
+        handleOwnerUnlockDigit(e.key);
+      } else if (e.key === 'Backspace') {
+        setOwnerUnlockPinInput((prev) => prev.slice(0, -1));
+        setOwnerUnlockPinError('');
+      } else if (e.key === 'Escape') {
+        setIsOwnerUnlockModalOpen(false);
+        setOwnerUnlockPinInput('');
+        setOwnerUnlockPinError('');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOwnerUnlockModalOpen, ownerUnlockPinInput, ownerStaff.pin, users]);
 
   const activeCustomer = useMemo(
     () => customers.find((c) => c.id === preselectedCustomerId) || null,
@@ -1722,7 +1772,7 @@ export function App() {
               currentRole={currentUser.role}
               permissions={activeStaffMember.permissions}
               initialSortBy={pautangSortBy}
-              ownerPin={users.find((u) => u.role === 'OWNER')?.pin || '9999'}
+              ownerPin={ownerStaff.pin}
               onRecordRepayment={handleRecordRepayment}
               onQuickAddCustomer={handleQuickAddCustomer}
             />
@@ -1790,20 +1840,32 @@ export function App() {
                     {t('dashboard.access_denied_desc')}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHapticFeedback('tap');
-                    const owner =
-                      users.find((u) => u.role === 'OWNER') ||
-                      USERS.find((u) => u.role === 'OWNER')!;
-                    setCurrentUser(owner);
-                  }}
-                  className="min-h-[50px] px-6 rounded-xl bg-[#006AFF] hover:bg-blue-600 text-white font-black text-xs uppercase tracking-wider shadow-sm flex items-center gap-2 transition active:scale-95 cursor-pointer"
-                >
-                  <Eye className="w-4 h-4 stroke-[2.5]" />
-                  <span>{t('dashboard.unlock_owner_pin')}</span>
-                </button>
+                <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHapticFeedback('tap');
+                      setIsOwnerUnlockModalOpen(true);
+                      setOwnerUnlockPinInput('');
+                      setOwnerUnlockPinError('');
+                    }}
+                    className="min-h-[50px] px-6 rounded-xl bg-[#006AFF] hover:bg-blue-600 text-white font-black text-xs uppercase tracking-wider shadow-sm flex items-center gap-2 transition active:scale-95 cursor-pointer"
+                  >
+                    <Eye className="w-4 h-4 stroke-[2.5]" />
+                    <span>{t('dashboard.unlock_owner_pin')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHapticFeedback('tap');
+                      setActiveTab('REGISTER');
+                    }}
+                    className="min-h-[50px] px-6 rounded-xl bg-surface-muted hover:bg-slate-200 dark:hover:bg-slate-700/60 border border-theme text-primary font-bold text-xs uppercase tracking-wider shadow-sm flex items-center gap-2 transition active:scale-95 cursor-pointer"
+                  >
+                    <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
+                    <span>Return to Register</span>
+                  </button>
+                </div>
               </div>
             ))}
         </main>
@@ -1935,7 +1997,7 @@ export function App() {
                     </span>
                   </div>
                   <p className="text-[10px] font-mono text-muted truncate">
-                    {googleUser?.email ? `${googleUser.email} • ` : ''}Shift #1 • PIN: {currentUser.pin}
+                    {googleUser?.email ? `${googleUser.email} • ` : ''}Shift #1
                   </p>
                 </div>
               </div>
@@ -1969,7 +2031,7 @@ export function App() {
                     <span className="text-[10px] font-mono text-muted">PIN Clock-In</span>
                   </div>
                   <p className="text-[11px] text-muted truncate">
-                    Switch between Owner ({users.find(u => u.role === 'OWNER')?.pin || '9999'}) &amp; Cashier
+                    Switch between Owner &amp; Cashier accounts
                   </p>
                 </div>
               </button>
@@ -2069,7 +2131,7 @@ export function App() {
                 </p>
               ) : (
                 <p className="text-[11px] text-muted mt-2 font-mono">
-                  {t('header.enter_pin')} ({users.map(u => `${u.name} ${u.pin}`).join(' • ')})
+                  {t('header.enter_pin')}
                 </p>
               )}
             </div>
@@ -2106,6 +2168,112 @@ export function App() {
         </div>
       )}
 
+      {/* Owner Access Verification PIN Modal */}
+      {isOwnerUnlockModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+        >
+          <div className="w-full max-w-sm bg-surface rounded-3xl border border-theme shadow-2xl p-6 space-y-5 text-center">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-2 border-b border-theme">
+              <div className="flex items-center gap-2.5 text-left">
+                <div className="w-9 h-9 rounded-xl bg-blue-600/15 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-primary">Owner Verification</h3>
+                  <p className="text-[11px] text-muted">Enter 4-digit Owner PIN</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOwnerUnlockModalOpen(false);
+                  setOwnerUnlockPinInput('');
+                  setOwnerUnlockPinError('');
+                }}
+                className="w-7 h-7 rounded-full bg-surface-muted flex items-center justify-center text-muted hover:text-primary cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Masked PIN Dots */}
+            <div>
+              <div className="flex items-center justify-center gap-3 my-2">
+                {[0, 1, 2, 3].map((idx) => (
+                  <div
+                    key={idx}
+                    className={`w-4 h-4 rounded-full border-2 transition-all ${
+                      ownerUnlockPinInput.length > idx
+                        ? 'bg-[#006AFF] border-[#006AFF] scale-110'
+                        : 'border-slate-300 dark:border-slate-600'
+                    }`}
+                  />
+                ))}
+              </div>
+
+              {ownerUnlockPinError ? (
+                <p className="text-xs text-rose-500 font-bold mt-1 animate-bounce">
+                  {ownerUnlockPinError}
+                </p>
+              ) : (
+                <p className="text-[11px] text-muted font-mono mt-1">
+                  Protected store owner controls
+                </p>
+              )}
+            </div>
+
+            {/* Touch Keypad */}
+            <div className="grid grid-cols-3 gap-2 font-mono">
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    triggerHapticFeedback('tap');
+                    if (key === 'C') {
+                      setOwnerUnlockPinInput('');
+                      setOwnerUnlockPinError('');
+                    } else if (key === '⌫') {
+                      setOwnerUnlockPinInput((prev) => prev.slice(0, -1));
+                      setOwnerUnlockPinError('');
+                    } else {
+                      handleOwnerUnlockDigit(key);
+                    }
+                  }}
+                  className={`min-h-[50px] rounded-xl font-black text-base border transition active:scale-95 cursor-pointer ${
+                    key === 'C' || key === '⌫'
+                      ? 'bg-surface-muted text-muted hover:text-primary border-theme text-xs'
+                      : 'bg-surface border-theme text-primary hover:border-[#006AFF] hover:text-[#006AFF]'
+                  }`}
+                >
+                  {key}
+                </button>
+              ))}
+            </div>
+
+            {/* Option to switch back to register if worker doesn't know PIN */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHapticFeedback('tap');
+                setIsOwnerUnlockModalOpen(false);
+                setOwnerUnlockPinInput('');
+                setOwnerUnlockPinError('');
+                setActiveTab('REGISTER');
+              }}
+              className="w-full py-2.5 rounded-xl border border-theme text-xs font-bold text-muted hover:text-primary transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Return to Register</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top-Layer Modals */}
       <AuthOnboardingModal
         isOpen={isAuthSplashOpen}
@@ -2138,7 +2306,7 @@ export function App() {
         subtotal={subtotal}
         customers={customers}
         currentRole={currentUser.role}
-        ownerPin={users.find((u) => u.role === 'OWNER')?.pin || '9999'}
+        ownerPin={ownerStaff.pin}
         preselectedCustomerId={preselectedCustomerId}
         onCompletePautang={handleCompletePautang}
         onQuickAddCustomer={handleQuickAddCustomer}

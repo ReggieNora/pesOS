@@ -59,11 +59,7 @@ export const ShiftHandoverModal: React.FC<ShiftHandoverModalProps> = ({
         onClose();
       } else {
         triggerHapticFeedback('warning');
-        setPinError(
-          `Invalid 4-digit PIN. Registered PINs: ${users
-            .map((u) => `${u.pin} (${u.name})`)
-            .join(', ')}`
-        );
+        setPinError('Invalid 4-digit PIN. Please try again.');
         setPinInput('');
       }
     }
@@ -145,8 +141,8 @@ export const ShiftHandoverModal: React.FC<ShiftHandoverModalProps> = ({
                       }`}
                     >
                       <div className="text-xs font-extrabold truncate">{u.name}</div>
-                      <div className="text-[10px] font-mono text-[#2563EB] mt-0.5">
-                        PIN: {u.pin}
+                      <div className="text-[10px] font-mono text-muted mt-0.5">
+                        PIN: ••••
                       </div>
                       <div className="text-[9px] uppercase font-bold text-muted mt-0.5">
                         {u.role}
@@ -175,14 +171,14 @@ export const ShiftHandoverModal: React.FC<ShiftHandoverModalProps> = ({
                 <p className="text-[11px] text-red-500 font-semibold mt-1">{pinError}</p>
               ) : (
                 <p className="text-[11px] text-muted mt-1">
-                  Enter 4-digit PIN ({users.map((u) => `\`${u.pin}\` ${u.name}`).join(' • ')})
+                  Enter 4-digit PIN to clock in
                 </p>
               )}
             </div>
 
             {/* 56px Touch Target PIN Pad */}
             <div className="grid grid-cols-3 gap-2">
-              {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'CLR', '0', 'OWNER'].map(
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'CLR', '0', '⌫'].map(
                 (key) => (
                   <button
                     key={key}
@@ -191,23 +187,20 @@ export const ShiftHandoverModal: React.FC<ShiftHandoverModalProps> = ({
                       if (key === 'CLR') {
                         setPinInput('');
                         setPinError('');
-                      } else if (key === 'OWNER') {
-                        triggerHapticFeedback('success');
-                        onSwitchUser(ownerOperator);
-                        onClose();
+                      } else if (key === '⌫') {
+                        setPinInput((prev) => prev.slice(0, -1));
+                        setPinError('');
                       } else {
                         handlePinDigit(key);
                       }
                     }}
                     className={`min-h-[56px] rounded-xl font-mono font-black text-base border transition active:scale-95 ${
-                      key === 'OWNER'
-                        ? 'bg-emerald-btn/15 border-emerald-btn/50 text-emerald-btn text-xs'
-                        : key === 'CLR'
-                          ? 'bg-surface-muted border-theme text-muted text-xs'
-                          : 'bg-surface-muted border-theme text-primary hover:border-[#2563EB]'
+                      key === 'CLR' || key === '⌫'
+                        ? 'bg-surface-muted border-theme text-muted text-xs'
+                        : 'bg-surface-muted border-theme text-primary hover:border-[#2563EB]'
                     }`}
                   >
-                    {key === 'OWNER' ? `OWNER ${ownerOperator.pin}` : key}
+                    {key}
                   </button>
                 )
               )}
