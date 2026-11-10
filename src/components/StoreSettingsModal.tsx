@@ -488,12 +488,12 @@ export const StoreSettingsModal: React.FC<StoreSettingsModalProps> = ({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 overflow-y-auto no-scrollbar bg-black/80 backdrop-blur-sm p-4 sm:p-6 flex justify-center items-start"
+          className="fixed inset-0 z-50 overflow-y-auto no-scrollbar bg-black/80 backdrop-blur-sm p-4 sm:p-6 flex justify-center items-start pt-6 sm:pt-10"
         >
           {/* Modal Dialog Card */}
           <form
             onSubmit={handleSaveWorker}
-            className="relative w-full max-w-lg my-8 sm:my-12 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl flex flex-col shrink-0"
+            className="relative w-full max-w-lg mb-8 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl flex flex-col shrink-0"
           >
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
