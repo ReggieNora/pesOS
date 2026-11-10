@@ -482,21 +482,21 @@ export const StoreSettingsModal: React.FC<StoreSettingsModalProps> = ({
       </div>
 
       {/* =========================================================================
-          ADD / EDIT WORKER MODAL (SINGLE UNIFIED SCROLL CONTAINER)
+          ADD / EDIT WORKER MODAL (PERMANENT TOP-EDGE ALIGNMENT & NO CLIPPING)
          ========================================================================= */}
       {isWorkerModalOpen && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 overflow-y-auto bg-black/75 backdrop-blur-sm p-4 sm:p-6 flex justify-center items-start sm:items-center"
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm p-4 sm:p-6 flex justify-center items-start"
         >
-          {/* Modal Dialog Card (Single continuous flow, no inner overflow) */}
+          {/* Modal Dialog Card */}
           <form
             onSubmit={handleSaveWorker}
-            className="relative w-full max-w-lg my-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl flex flex-col"
+            className="relative w-full max-w-lg my-8 sm:my-12 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl flex flex-col shrink-0"
           >
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900/95 rounded-t-2xl">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
               <div>
                 <h3 className="text-base font-semibold text-white">
                   {editingStaffId ? 'Edit Worker Permissions' : 'Add Store Worker'}
@@ -506,13 +506,13 @@ export const StoreSettingsModal: React.FC<StoreSettingsModalProps> = ({
               <button 
                 type="button" 
                 onClick={() => setIsWorkerModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                className="text-slate-400 hover:text-white p-1 cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            {/* Form Body (Flows naturally without nested scrollbar) */}
+            {/* Form Body & Footer */}
             <div className="p-6 space-y-5 text-left">
               {formError && (
                 <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold">
