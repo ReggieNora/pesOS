@@ -75,8 +75,8 @@ export async function uploadProductImage(
   const compressedBlob = await compressImage(file, 800, 0.85);
 
   const metaEnv = (import.meta as unknown as { env?: Record<string, string> }).env || {};
-  const supabaseUrl = metaEnv.VITE_SUPABASE_URL;
-  const supabaseAnonKey = metaEnv.VITE_SUPABASE_ANON_KEY;
+  const supabaseUrl = metaEnv.VITE_SUPABASE_URL || 'https://jikokwwioejqerqsgzfs.supabase.co';
+  const supabaseAnonKey = metaEnv.VITE_SUPABASE_PUBLISHABLE_KEY || metaEnv.VITE_SUPABASE_ANON_KEY || 'sb_publishable_hH6Pr7ZtzRE5_qMPlQJDYA_Dice0hWM';
 
   if (mode === 'LIVE' && supabaseUrl && supabaseAnonKey) {
     try {
