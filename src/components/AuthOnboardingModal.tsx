@@ -309,63 +309,20 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
               </div>
             </div>
 
-            {/* Option A (Primary Demo): [ 🚀 Open Interactive Demo Mode ] */}
-            <div className="rounded-2xl bg-surface-muted border border-theme p-4 space-y-3 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-btn/20 border border-emerald-btn/50 text-emerald-btn font-mono font-bold text-[10px] uppercase">
-                  Instant Preview • Screenshots Ready
-                </span>
-                <Sparkles className="w-4 h-4 text-emerald-btn" />
-              </div>
-
+            {/* PRIMARY ENTRY POINT: CONTINUE WITH GOOGLE (Center Stage) */}
+            <div className="rounded-2xl bg-surface-muted border border-theme p-4 space-y-3 shadow-sm text-center">
               <div className="space-y-1">
-                <h2 className="text-sm font-extrabold text-primary">
-                  Explore with Pre-Loaded Store Data
+                <span className="px-2.5 py-0.5 rounded-full bg-[#2563EB]/15 border border-[#2563EB]/40 text-[#2563EB] dark:text-blue-400 font-mono font-bold text-[10px] uppercase">
+                  Recommended • 1-Tap Entry
+                </span>
+                <h2 className="text-sm font-black text-primary pt-1">
+                  Connect &amp; Open Your Store
                 </h2>
                 <p className="text-xs text-muted leading-relaxed">
-                  Skips login and opens the Cashier Register with 30 items, a
-                  sample ₱81.00 cart, and neighborhood Pautang accounts.
+                  Sign in or create your sari-sari store account instantly with Google.
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHapticFeedback('success');
-                  onSelectDemoMode();
-                }}
-                className="w-full min-h-[56px] rounded-2xl bg-emerald-btn hover:opacity-95 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] transition"
-              >
-                <Rocket className="w-5 h-5 stroke-[2.5]" />
-                <span>🚀 Open Interactive Demo Mode</span>
-              </button>
-
-              <div className="flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onResetDemoData();
-                    onSelectDemoMode();
-                  }}
-                  className="text-[11px] font-mono font-semibold text-muted hover:text-primary flex items-center gap-1 transition"
-                >
-                  <RotateCcw className="w-3 h-3 text-amber-badge" />
-                  <span>Reset Demo Data to Fresh State</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div className="relative flex items-center justify-center">
-              <div className="border-t border-theme w-full" />
-              <span className="bg-surface px-3 text-[10px] font-mono uppercase tracking-widest text-muted shrink-0">
-                Or Run Your Live Store
-              </span>
-              <div className="border-t border-theme w-full" />
-            </div>
-
-            {/* Option B (Live App with Google OAuth): [ Continue with Google ] */}
-            <div className="space-y-2.5">
               <button
                 type="button"
                 onClick={async () => {
@@ -375,7 +332,7 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
                   }
                 }}
                 disabled={isGoogleLoading || isLoading}
-                className="w-full min-h-[52px] rounded-2xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white font-extrabold text-sm flex items-center justify-center gap-3 shadow-md active:scale-[0.98] transition cursor-pointer disabled:opacity-50"
+                className="w-full min-h-[56px] rounded-2xl bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-850 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-extrabold text-sm flex items-center justify-center gap-3 shadow-md active:scale-[0.98] transition cursor-pointer disabled:opacity-50"
               >
                 <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
                   <path
@@ -397,26 +354,30 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
                 </svg>
                 <span>{isGoogleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
               </button>
+            </div>
 
-              <div className="relative flex items-center justify-center my-1">
-                <div className="border-t border-theme/60 w-full" />
-                <span className="bg-surface px-2.5 text-[10px] font-mono uppercase text-muted shrink-0">
-                  or sign in with PIN
-                </span>
-                <div className="border-t border-theme/60 w-full" />
-              </div>
+            {/* Divider */}
+            <div className="relative flex items-center justify-center">
+              <div className="border-t border-theme w-full" />
+              <span className="bg-surface px-3 text-[10px] font-mono uppercase tracking-widest text-muted shrink-0">
+                Or Continue With
+              </span>
+              <div className="border-t border-theme w-full" />
+            </div>
 
+            {/* SECONDARY OPTIONS: Cashier PIN Unlock & Demo Mode */}
+            <div className="space-y-2.5">
               <button
                 type="button"
                 onClick={() => {
                   triggerHapticFeedback('tap');
                   setView('SIGN_IN');
                 }}
-                className="w-full min-h-[48px] rounded-2xl bg-[#2563EB] hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] transition cursor-pointer"
+                className="w-full min-h-[48px] rounded-2xl bg-surface-muted hover:bg-slate-200 dark:hover:bg-slate-700/60 border border-theme text-primary font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] transition cursor-pointer"
               >
-                <KeyRound className="w-4 h-4 stroke-[2.5]" />
+                <KeyRound className="w-4 h-4 text-[#2563EB] stroke-[2.5]" />
                 <span>
-                  🔑 Sign In with PIN
+                  🔑 Cashier PIN Unlock
                   {existingLiveStore
                     ? ` (${existingLiveStore.profile.storeName})`
                     : ''}
@@ -426,19 +387,28 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  triggerHapticFeedback('tap');
-                  setStoreName('');
-                  setFirstPin('');
-                  setConfirmPin('');
-                  setPinStage('CREATE');
-                  setScreen(1);
-                  setView('WIZARD');
+                  triggerHapticFeedback('success');
+                  onSelectDemoMode();
                 }}
-                className="w-full min-h-[44px] rounded-2xl bg-surface-muted border border-theme hover:border-[#2563EB] text-primary font-extrabold text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 active:scale-[0.98] transition cursor-pointer"
+                className="w-full min-h-[48px] rounded-2xl bg-emerald-btn/15 hover:bg-emerald-btn/25 border border-emerald-btn/50 text-emerald-btn font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 active:scale-[0.98] transition cursor-pointer"
               >
-                <Plus className="w-4 h-4 text-[#2563EB] stroke-[2.5]" />
-                <span>➕ Manual Setup (No Google Account)</span>
+                <Rocket className="w-4 h-4 stroke-[2.5]" />
+                <span>🚀 Explore Demo Mode (Pre-Loaded Store)</span>
               </button>
+
+              <div className="flex justify-center pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onResetDemoData();
+                    onSelectDemoMode();
+                  }}
+                  className="text-[11px] font-mono text-muted hover:text-primary flex items-center gap-1 transition"
+                >
+                  <RotateCcw className="w-3 h-3 text-amber-badge" />
+                  <span>Reset Demo Data to Clean State</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1015,11 +985,11 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
             </div>
 
             <div className="space-y-1">
-              <h2 className="text-base font-black text-primary">
-                Name Your Sari-Sari Store
+              <h2 className="text-lg font-black text-primary">
+                Finish Your Store Setup
               </h2>
-              <p className="text-xs text-muted">
-                Your store and inventory will be securely linked to your Google account.
+              <p className="text-xs text-muted leading-relaxed">
+                Pre-filled from your Google account. Just enter your store name and location to open your counter.
               </p>
             </div>
 
@@ -1096,7 +1066,7 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
                 className="w-full min-h-[52px] rounded-2xl bg-[#2563EB] hover:bg-blue-700 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition disabled:opacity-50 cursor-pointer"
               >
                 <Rocket className="w-5 h-5 stroke-[2.5]" />
-                <span>{isLoading ? 'Setting Up Store...' : 'Launch Store & Open POS'}</span>
+                <span>{isLoading ? 'Setting Up Store...' : 'Launch Store'}</span>
               </button>
             </form>
           </div>
