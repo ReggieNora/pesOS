@@ -1,5 +1,16 @@
 import { supabase } from './supabase';
-import { Product, Customer, CartItem, Role, CategoryId } from '../types/pos';
+import {
+  Product,
+  Customer,
+  CartItem,
+  Role,
+  CategoryId,
+  StoreStaff,
+  StaffPermissions,
+  DEFAULT_OWNER_PERMISSIONS,
+  DEFAULT_CASHIER_PERMISSIONS,
+  DEFAULT_MANAGER_PERMISSIONS,
+} from '../types/pos';
 import { TOP_20_SARI_SARI_STARTER_ITEMS } from '../data/mockSariSariData';
 
 export function mapRowToProduct(p: any, existing?: Product): Product {
@@ -561,6 +572,7 @@ export async function insertStoreSalesTicket(
     amount_tendered?: number;
     change_due?: number;
     cashier_name?: string;
+    staff_id?: string;
   },
   userId?: string
 ) {
@@ -575,6 +587,10 @@ export async function insertStoreSalesTicket(
     cashier_name: ticket.cashier_name || 'Cashier',
   };
 
+  if (ticket.staff_id) {
+    row.staff_id = ticket.staff_id;
+  }
+
   if (userId) {
     row.user_id = userId;
   }
@@ -586,10 +602,11 @@ export async function insertStoreSalesTicket(
     .single();
 
   if (res.error) {
-    const { user_id, ...withoutUser } = row;
-    const retryRes = await supabase.from('sales_tickets').insert(withoutUser).select().single();
+    // Retry omitting staff_id or user_id if columns not yet migrated
+    const { staff_id, user_id, ...withoutStaffAndUser } = row;
+    const retryRes = await supabase.from('sales_tickets').insert(withoutStaffAndUser).select().single();
     if (retryRes.error && retryRes.error.message?.includes('store_id')) {
-      const { store_id, ...withoutStore } = withoutUser;
+      const { store_id, ...withoutStore } = withoutStaffAndUser;
       return supabase.from('sales_tickets').insert(withoutStore).select().single();
     }
     return retryRes;
@@ -604,6 +621,8 @@ export async function insertStorePautangLedger(
     amount: number;
     type: 'debt' | 'payment';
     notes?: string;
+    cashier_name?: string;
+    staff_id?: string;
   },
   userId?: string
 ) {
@@ -614,6 +633,13 @@ export async function insertStorePautangLedger(
     type: entry.type,
     notes: entry.notes || null,
   };
+
+  if (entry.cashier_name) {
+    row.cashier_name = entry.cashier_name;
+  }
+  if (entry.staff_id) {
+    row.staff_id = entry.staff_id;
+  }
 
   if (userId) {
     row.user_id = userId;
@@ -626,13 +652,282 @@ export async function insertStorePautangLedger(
     .single();
 
   if (res.error) {
-    const { user_id, ...withoutUser } = row;
-    const retryRes = await supabase.from('pautang_ledger').insert(withoutUser).select().single();
+    const { staff_id, cashier_name, user_id, ...cleanRow } = row;
+    const retryRes = await supabase.from('pautang_ledger').insert(cleanRow).select().single();
     if (retryRes.error && retryRes.error.message?.includes('store_id')) {
-      const { store_id, ...withoutStore } = withoutUser;
+      const { store_id, ...withoutStore } = cleanRow;
       return supabase.from('pautang_ledger').insert(withoutStore).select().single();
     }
     return retryRes;
   }
   return res;
 }
+
+/**
+ * =========================================================================
+ * STORE STAFF MANAGEMENT & PERMISSIONS (public.store_staff)
+ * =========================================================================
+ */
+
+const STAFF_CACHE_PREFIX = 'pesos_staff_list_';
+const ACTIVE_STAFF_KEY_PREFIX = 'pesos_active_staff_';
+
+export function normalizePermissions(rawPermissions: any, role: 'cashier' | 'manager'): StaffPermissions {
+  const fallback = role === 'manager' ? DEFAULT_MANAGER_PERMISSIONS : DEFAULT_CASHIER_PERMISSIONS;
+  if (!rawPermissions) return { ...fallback };
+
+  let parsed = rawPermissions;
+  if (typeof rawPermissions === 'string') {
+    try {
+      parsed = JSON.parse(rawPermissions);
+    } catch {
+      return { ...fallback };
+    }
+  }
+
+  return {
+    can_checkout: typeof parsed.can_checkout === 'boolean' ? parsed.can_checkout : fallback.can_checkout,
+    can_record_pautang: typeof parsed.can_record_pautang === 'boolean' ? parsed.can_record_pautang : fallback.can_record_pautang,
+    can_settle_pautang: typeof parsed.can_settle_pautang === 'boolean' ? parsed.can_settle_pautang : fallback.can_settle_pautang,
+    can_edit_inventory: typeof parsed.can_edit_inventory === 'boolean' ? parsed.can_edit_inventory : fallback.can_edit_inventory,
+    can_view_margins: typeof parsed.can_view_margins === 'boolean' ? parsed.can_view_margins : fallback.can_view_margins,
+    can_export_reports: typeof parsed.can_export_reports === 'boolean' ? parsed.can_export_reports : fallback.can_export_reports,
+  };
+}
+
+export function getCachedStoreStaff(storeId: string): StoreStaff[] {
+  try {
+    const raw = localStorage.getItem(`${STAFF_CACHE_PREFIX}${storeId}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function setCachedStoreStaff(storeId: string, staffList: StoreStaff[]): void {
+  try {
+    localStorage.setItem(`${STAFF_CACHE_PREFIX}${storeId}`, JSON.stringify(staffList));
+  } catch (err) {
+    console.warn('Failed to cache store staff:', err);
+  }
+}
+
+export function getActiveStaffSession(storeId: string): StoreStaff | null {
+  try {
+    const raw = localStorage.getItem(`${ACTIVE_STAFF_KEY_PREFIX}${storeId}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setActiveStaffSession(storeId: string, staff: StoreStaff): void {
+  try {
+    localStorage.setItem(`${ACTIVE_STAFF_KEY_PREFIX}${storeId}`, JSON.stringify(staff));
+  } catch (err) {
+    console.warn('Failed to set active staff session:', err);
+  }
+}
+
+/**
+ * Fetch all staff for a specific store_id from Supabase with offline cache fallback.
+ */
+export async function fetchStoreStaff(storeId: string): Promise<{ data: StoreStaff[]; error?: string }> {
+  try {
+    const { data, error } = await supabase
+      .from('store_staff')
+      .select('*')
+      .eq('store_id', storeId)
+      .order('name');
+
+    if (error) {
+      console.warn('fetchStoreStaff error from Supabase (falling back to cache):', error.message);
+      const cached = getCachedStoreStaff(storeId);
+      return { data: cached, error: error.message };
+    }
+
+    if (data && Array.isArray(data)) {
+      const mapped: StoreStaff[] = data.map((row: any) => ({
+        id: String(row.id),
+        store_id: row.store_id || storeId,
+        name: row.name || 'Worker',
+        pin: String(row.pin || '1234'),
+        role: row.role === 'manager' ? 'manager' : 'cashier',
+        is_active: row.is_active !== false,
+        permissions: normalizePermissions(row.permissions, row.role === 'manager' ? 'manager' : 'cashier'),
+        created_at: row.created_at || new Date().toISOString(),
+      }));
+
+      setCachedStoreStaff(storeId, mapped);
+      return { data: mapped };
+    }
+
+    const cached = getCachedStoreStaff(storeId);
+    return { data: cached };
+  } catch (err: any) {
+    console.warn('fetchStoreStaff exception:', err);
+    return { data: getCachedStoreStaff(storeId), error: err?.message };
+  }
+}
+
+/**
+ * Add a new worker into public.store_staff.
+ */
+export async function insertStoreStaff(
+  storeId: string,
+  staff: Omit<StoreStaff, 'id'>,
+  userId?: string
+): Promise<{ data?: StoreStaff; error?: string }> {
+  const generatedId = crypto.randomUUID ? crypto.randomUUID() : `stf-${Date.now()}`;
+  const newStaff: StoreStaff = {
+    id: generatedId,
+    store_id: storeId,
+    name: staff.name.trim(),
+    pin: staff.pin.trim(),
+    role: staff.role,
+    is_active: staff.is_active,
+    permissions: staff.permissions,
+    created_at: new Date().toISOString(),
+  };
+
+  try {
+    const row: Record<string, any> = {
+      id: newStaff.id,
+      store_id: storeId,
+      name: newStaff.name,
+      pin: newStaff.pin,
+      role: newStaff.role,
+      is_active: newStaff.is_active,
+      permissions: newStaff.permissions,
+    };
+    if (userId) row.user_id = userId;
+
+    const { data, error } = await supabase
+      .from('store_staff')
+      .insert(row)
+      .select()
+      .single();
+
+    if (error) {
+      console.warn('Supabase store_staff insert error (saving to local cache):', error.message);
+      // Try insert without user_id if column missing
+      const { user_id, ...cleanRow } = row;
+      const retry = await supabase.from('store_staff').insert(cleanRow).select().single();
+      if (retry.data) {
+        const resultStaff: StoreStaff = {
+          ...newStaff,
+          id: String(retry.data.id),
+        };
+        const currentCache = getCachedStoreStaff(storeId);
+        setCachedStoreStaff(storeId, [...currentCache, resultStaff]);
+        return { data: resultStaff };
+      }
+    }
+
+    const savedStaff: StoreStaff = data
+      ? {
+          id: String(data.id),
+          store_id: data.store_id || storeId,
+          name: data.name,
+          pin: String(data.pin),
+          role: data.role,
+          is_active: data.is_active !== false,
+          permissions: normalizePermissions(data.permissions, data.role),
+          created_at: data.created_at,
+        }
+      : newStaff;
+
+    const currentCache = getCachedStoreStaff(storeId);
+    setCachedStoreStaff(storeId, [...currentCache, savedStaff]);
+    return { data: savedStaff };
+  } catch (err: any) {
+    console.warn('insertStoreStaff exception (saving to local storage):', err);
+    const currentCache = getCachedStoreStaff(storeId);
+    setCachedStoreStaff(storeId, [...currentCache, newStaff]);
+    return { data: newStaff };
+  }
+}
+
+/**
+ * Update an existing worker's permissions, PIN, role or active state.
+ */
+export async function updateStoreStaff(
+  storeId: string,
+  staffId: string,
+  updates: Partial<StoreStaff>
+): Promise<{ data?: StoreStaff; error?: string }> {
+  try {
+    const updatePayload: Record<string, any> = {};
+    if (updates.name !== undefined) updatePayload.name = updates.name.trim();
+    if (updates.pin !== undefined) updatePayload.pin = updates.pin.trim();
+    if (updates.role !== undefined) updatePayload.role = updates.role;
+    if (updates.is_active !== undefined) updatePayload.is_active = updates.is_active;
+    if (updates.permissions !== undefined) updatePayload.permissions = updates.permissions;
+
+    const { data, error } = await supabase
+      .from('store_staff')
+      .update(updatePayload)
+      .eq('id', staffId)
+      .eq('store_id', storeId)
+      .select()
+      .single();
+
+    if (error) {
+      console.warn('updateStoreStaff remote error (updating cache):', error.message);
+    }
+
+    const currentCache = getCachedStoreStaff(storeId);
+    const updatedList = currentCache.map((s) =>
+      s.id === staffId ? { ...s, ...updates } : s
+    );
+    setCachedStoreStaff(storeId, updatedList);
+
+    const updated = updatedList.find((s) => s.id === staffId);
+    return { data: updated };
+  } catch (err: any) {
+    console.warn('updateStoreStaff exception:', err);
+    const currentCache = getCachedStoreStaff(storeId);
+    const updatedList = currentCache.map((s) =>
+      s.id === staffId ? { ...s, ...updates } : s
+    );
+    setCachedStoreStaff(storeId, updatedList);
+    return { data: updatedList.find((s) => s.id === staffId) };
+  }
+}
+
+/**
+ * Deactivates or removes a worker.
+ */
+export async function deactivateStoreStaff(
+  storeId: string,
+  staffId: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from('store_staff')
+      .update({ is_active: false })
+      .eq('id', staffId)
+      .eq('store_id', storeId);
+
+    if (error) {
+      // Try hard delete if update fails
+      await supabase.from('store_staff').delete().eq('id', staffId).eq('store_id', storeId);
+    }
+
+    const currentCache = getCachedStoreStaff(storeId);
+    const updatedList = currentCache.map((s) =>
+      s.id === staffId ? { ...s, is_active: false } : s
+    );
+    setCachedStoreStaff(storeId, updatedList);
+    return { ok: true };
+  } catch (err: any) {
+    console.warn('deactivateStoreStaff error:', err);
+    const currentCache = getCachedStoreStaff(storeId);
+    const updatedList = currentCache.map((s) =>
+      s.id === staffId ? { ...s, is_active: false } : s
+    );
+    setCachedStoreStaff(storeId, updatedList);
+    return { ok: true };
+  }
+}
+

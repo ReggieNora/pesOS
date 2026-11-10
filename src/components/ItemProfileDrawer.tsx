@@ -22,6 +22,8 @@ interface ItemProfileDrawerProps {
   product: Product | null; // null if creating a new item
   environmentMode?: EnvironmentMode;
   onSave: (product: Product, isNew: boolean) => void;
+  canEditInventory?: boolean;
+  canViewMargins?: boolean;
 }
 
 // Category accent colors matching register
@@ -41,6 +43,8 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
   product,
   environmentMode = 'DEMO',
   onSave,
+  canEditInventory = true,
+  canViewMargins = true,
 }) => {
   const { t, getCategory } = useLanguage();
   const isNew = !product;
@@ -416,46 +420,64 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  {t('item_profile.cost_puhunan')}
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+                  <span>{t('item_profile.cost_puhunan')}</span>
+                  {!canViewMargins && <span className="text-[10px] text-amber-400 font-mono">🔒 Restricted</span>}
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₱</span>
-                  <input
-                    type="number"
-                    step="0.25"
-                    min="0"
-                    value={wholesaleCost}
-                    onChange={(e) => setWholesaleCost(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white font-bold focus:outline-none focus:ring-2 focus:ring-sky-500 text-base"
-                  />
+                  {canViewMargins ? (
+                    <input
+                      type="number"
+                      step="0.25"
+                      min="0"
+                      value={wholesaleCost}
+                      onChange={(e) => setWholesaleCost(e.target.value)}
+                      disabled={!canEditInventory}
+                      className="w-full pl-8 pr-3 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white font-bold focus:outline-none focus:ring-2 focus:ring-sky-500 text-base disabled:opacity-50"
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      disabled
+                      value="••••"
+                      className="w-full pl-8 pr-3 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-400 font-mono font-bold text-base cursor-not-allowed"
+                    />
+                  )}
                 </div>
               </div>
             </div>
 
             {/* DYNAMIC PROFIT MARGIN BADGE */}
-            <div 
-              className={`p-3.5 rounded-xl border flex items-center justify-between transition-colors ${
-                isProfit 
-                  ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300' 
-                  : 'bg-rose-950/40 border-rose-500/30 text-rose-300'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <TrendingUp className={`w-4 h-4 ${isProfit ? 'text-emerald-400' : 'text-rose-400 rotate-180'}`} />
-                <span className="text-xs font-medium">
-                  {isProfit ? `${t('item_profile.kita_margin')}:` : `${t('item_profile.lugi_margin')}:`}
-                </span>
+            {canViewMargins ? (
+              <div 
+                className={`p-3.5 rounded-xl border flex items-center justify-between transition-colors ${
+                  isProfit 
+                    ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300' 
+                    : 'bg-rose-950/40 border-rose-500/30 text-rose-300'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <TrendingUp className={`w-4 h-4 ${isProfit ? 'text-emerald-400' : 'text-rose-400 rotate-180'}`} />
+                  <span className="text-xs font-medium">
+                    {isProfit ? `${t('item_profile.kita_margin')}:` : `${t('item_profile.lugi_margin')}:`}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-base font-extrabold tracking-tight">
+                    {isProfit ? '₱' : '-₱'}{Math.abs(kita).toFixed(2)}
+                  </span>
+                  <span className="text-xs font-semibold ml-1.5 opacity-90">
+                    ({marginPct.toFixed(1)}% margin)
+                  </span>
+                </div>
               </div>
-              <div className="text-right">
-                <span className="text-base font-extrabold tracking-tight">
-                  {isProfit ? '₱' : '-₱'}{Math.abs(kita).toFixed(2)}
-                </span>
-                <span className="text-xs font-semibold ml-1.5 opacity-90">
-                  ({marginPct.toFixed(1)}% margin)
-                </span>
+            ) : (
+              <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-slate-400 text-xs flex items-center justify-between">
+                <span>Margin &amp; Profit Telemetry:</span>
+                <span className="font-mono text-[11px] text-amber-400 font-bold">🔒 Manager Permission Required</span>
               </div>
-            </div>
+            )}
           </div>
 
           {/* INVENTORY CONTROLS & FAVORITE */}
@@ -534,11 +556,11 @@ export const ItemProfileDrawer: React.FC<ItemProfileDrawerProps> = ({
           <button
             type="button"
             onClick={handleSave}
-            disabled={isUploading}
+            disabled={isUploading || !canEditInventory}
             className="flex items-center space-x-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-sky-500 hover:bg-sky-400 active:scale-95 text-white shadow-lg shadow-sky-500/20 transition-all disabled:opacity-50 cursor-pointer"
           >
             <Check className="w-4 h-4 stroke-[2.5]" />
-            <span>{isNew ? t('item_profile.create_item') : t('item_profile.save_changes')}</span>
+            <span>{!canEditInventory ? 'Editing Disabled' : isNew ? t('item_profile.create_item') : t('item_profile.save_changes')}</span>
           </button>
         </div>
       </div>

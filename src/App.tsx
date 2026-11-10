@@ -30,6 +30,8 @@ import {
 } from './components/PaymentModals';
 import { ShiftHandoverModal } from './components/ShiftHandoverModal';
 import { SaleCompletedModal } from './components/SaleCompletedModal';
+import { StoreSettingsModal } from './components/StoreSettingsModal';
+import { CashierSwitchModal } from './components/CashierSwitchModal';
 import {
   computeCustomerStatus,
   INITIAL_PRODUCTS,
@@ -49,6 +51,12 @@ import {
   StoreStateSnapshot,
   TransactionRecord,
   UserProfile,
+  Role,
+  StoreStaff,
+  StaffPermissions,
+  DEFAULT_OWNER_PERMISSIONS,
+  DEFAULT_CASHIER_PERMISSIONS,
+  DEFAULT_MANAGER_PERMISSIONS,
 } from './types/pos';
 import {
   authenticateLiveStore,
@@ -79,6 +87,14 @@ import {
   signInWithGoogle,
   signOutAuth,
   fetchStoreForUser,
+  fetchStoreStaff,
+  insertStoreStaff,
+  updateStoreStaff,
+  deactivateStoreStaff,
+  getActiveStaffSession,
+  setActiveStaffSession,
+  getCachedStoreStaff,
+  setCachedStoreStaff,
 } from './utils/supabaseStoreService';
 import { supabase } from './utils/supabase';
 import {
@@ -275,6 +291,101 @@ export function App() {
   const [googleUser, setGoogleUser] = useState<any>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isStoreSettingsOpen, setIsStoreSettingsOpen] = useState(false);
+  const [isStoreSettingsModalOpen, setIsStoreSettingsModalOpen] = useState(false);
+  const [isCashierSwitchModalOpen, setIsCashierSwitchModalOpen] = useState(false);
+
+  // Staff & Worker Management State
+  const ownerStaff: StoreStaff = useMemo(
+    () => ({
+      id: 'owner-admin',
+      store_id: storeProfile.id,
+      name: storeProfile.ownerName || 'Store Owner',
+      pin: users.find((u) => u.role === 'OWNER')?.pin || '9999',
+      role: 'manager',
+      is_active: true,
+      permissions: { ...DEFAULT_OWNER_PERMISSIONS },
+    }),
+    [storeProfile.id, storeProfile.ownerName, users]
+  );
+
+  const [staffList, setStaffList] = useState<StoreStaff[]>(() => {
+    const cached = getCachedStoreStaff(storeProfile.id);
+    if (cached.length > 0) return cached;
+    if (environmentMode === 'DEMO') {
+      return [
+        {
+          id: 'staff-ate-may',
+          store_id: storeProfile.id,
+          name: 'Ate May',
+          pin: '1234',
+          role: 'cashier',
+          is_active: true,
+          permissions: { ...DEFAULT_CASHIER_PERMISSIONS },
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: 'staff-kuya-mark',
+          store_id: storeProfile.id,
+          name: 'Kuya Mark',
+          pin: '5678',
+          role: 'manager',
+          is_active: true,
+          permissions: { ...DEFAULT_MANAGER_PERMISSIONS },
+          created_at: new Date().toISOString(),
+        },
+      ];
+    }
+    return [];
+  });
+
+  const [activeStaffMember, setActiveStaffMember] = useState<StoreStaff>(() => {
+    const sessionStaff = getActiveStaffSession(storeProfile.id);
+    return sessionStaff || ownerStaff;
+  });
+
+  const handleSwitchStaff = (newStaff: StoreStaff) => {
+    setActiveStaffMember(newStaff);
+    setActiveStaffSession(storeProfile.id, newStaff);
+    const mappedRole: Role = newStaff.role === 'manager' ? 'OWNER' : 'CASHIER';
+    setCurrentUser({
+      id: newStaff.id,
+      name: newStaff.name,
+      role: mappedRole,
+      pin: newStaff.pin,
+      badge: newStaff.name.slice(0, 2).toUpperCase(),
+    });
+    showToast(`Switched active cashier to ${newStaff.name} (${newStaff.role})`);
+  };
+
+  const handleAddStaff = async (staff: Omit<StoreStaff, 'id'>) => {
+    const activeUserId = googleUser?.id || currentUser.id;
+    const res = await insertStoreStaff(storeProfile.id, staff, activeUserId);
+    if (res.data) {
+      setStaffList((prev) => [...prev, res.data!]);
+      showToast(`Added worker "${staff.name}" successfully!`);
+    }
+  };
+
+  const handleUpdateStaff = async (staffId: string, updates: Partial<StoreStaff>) => {
+    const res = await updateStoreStaff(storeProfile.id, staffId, updates);
+    if (res.data) {
+      setStaffList((prev) => prev.map((s) => (s.id === staffId ? res.data! : s)));
+      if (activeStaffMember.id === staffId) {
+        setActiveStaffMember(res.data);
+        setActiveStaffSession(storeProfile.id, res.data);
+      }
+      showToast(`Updated "${res.data.name}" profile.`);
+    }
+  };
+
+  const handleDeactivateStaff = async (staffId: string) => {
+    await deactivateStoreStaff(storeProfile.id, staffId);
+    setStaffList((prev) => prev.filter((s) => s.id !== staffId));
+    if (activeStaffMember.id === staffId) {
+      handleSwitchStaff(ownerStaff);
+    }
+    showToast('Worker removed from active roster.');
+  };
 
   // Google OAuth Auth State Listener & Session Initialization
   useEffect(() => {
@@ -525,10 +636,15 @@ export function App() {
       if (store) {
         setActiveStoreSession(store.id, store.store_name || store.name || 'Store', store);
 
-        const [prodsRes, custsRes] = await Promise.all([
+        const [prodsRes, custsRes, staffRes] = await Promise.all([
           fetchStoreProducts(store.id),
           fetchStoreCustomers(store.id),
+          fetchStoreStaff(store.id),
         ]);
+
+        if (staffRes.data && staffRes.data.length > 0) {
+          setStaffList(staffRes.data);
+        }
 
         let liveSnapshot = getExistingLiveStoreSnapshot();
         const scopedProducts: Product[] =
@@ -695,11 +811,19 @@ export function App() {
     setLockPinError('');
 
     if (nextPin.length === 4) {
-      const matched = users.find((u) => u.pin === nextPin);
-      if (matched) {
+      const allStaff = [ownerStaff, ...staffList.filter((s) => s.is_active !== false)];
+      const matchedStaff = allStaff.find((s) => s.pin === nextPin);
+      const matchedUser = users.find((u) => u.pin === nextPin);
+
+      if (matchedStaff) {
         triggerHapticFeedback('success');
-        if (matched.id !== currentUser.id) {
-          setCurrentUser(matched);
+        handleSwitchStaff(matchedStaff);
+        setIsStationLocked(false);
+        setLockPinInput('');
+      } else if (matchedUser) {
+        triggerHapticFeedback('success');
+        if (matchedUser.id !== currentUser.id) {
+          setCurrentUser(matchedUser);
         }
         setIsStationLocked(false);
         setLockPinInput('');
@@ -723,7 +847,7 @@ export function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isStationLocked, lockPinInput, users, currentUser]);
+  }, [isStationLocked, lockPinInput, users, currentUser, ownerStaff, staffList]);
 
   const activeCustomer = useMemo(
     () => customers.find((c) => c.id === preselectedCustomerId) || null,
@@ -789,8 +913,8 @@ export function App() {
       id: txId,
       createdAt: nowStr,
       timestampMs: Date.now(),
-      cashierId: currentUser.id,
-      cashierName: currentUser.name,
+      cashierId: activeStaffMember.id,
+      cashierName: activeStaffMember.name,
       type,
       totalAmount: subtotal,
       totalWholesaleCost: totalCost,
@@ -855,7 +979,8 @@ export function App() {
           payment_method: type === 'PAUTANG' ? 'credit' : 'cash',
           amount_tendered: options?.cashTendered,
           change_due: options?.changeGiven,
-          cashier_name: currentUser.name,
+          cashier_name: activeStaffMember.name,
+          staff_id: activeStaffMember.id,
         },
         activeUserId
       ).catch((err) => {
@@ -870,6 +995,8 @@ export function App() {
             amount: subtotal,
             type: 'debt',
             notes: `Pautang Sale: ${cart.map((i) => `${i.qty}x ${i.product.shortName}`).join(', ')}`,
+            cashier_name: activeStaffMember.name,
+            staff_id: activeStaffMember.id,
           },
           activeUserId
         ).catch((err) => {
@@ -1010,8 +1137,8 @@ export function App() {
       customerName: target.name,
       amountPaid,
       balanceAfter: newBalance,
-      receivedByUserId: currentUser.id,
-      receivedByName: currentUser.name,
+      receivedByUserId: activeStaffMember.id,
+      receivedByName: activeStaffMember.name,
       createdAt: `Today, ${new Date().toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
@@ -1030,6 +1157,8 @@ export function App() {
           amount: amountPaid,
           type: 'payment',
           notes: note.trim() || `Repayment of ${formatPesoExact(amountPaid)}`,
+          cashier_name: activeStaffMember.name,
+          staff_id: activeStaffMember.id,
         },
         googleUser?.id || currentUser.id
       ).catch((err) => {
@@ -1267,15 +1396,27 @@ export function App() {
             {/* Slim Vertical Divider */}
             <div className="h-4 w-px bg-theme shrink-0 hidden sm:block" />
 
-            {/* Active Station / Cashier Label */}
-            <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-muted truncate">
-              <span className="truncate max-w-[120px] font-medium text-primary">
-                {currentUser.name}
+            {/* Subtle Active Cashier Switch Pill: [ Cashier: Ate May | Switch ] */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHapticFeedback('tap');
+                setIsCashierSwitchModalOpen(true);
+              }}
+              className="h-8 px-2 sm:px-2.5 rounded-full bg-surface-muted border border-theme hover:border-blue-500/50 text-xs font-semibold text-primary flex items-center gap-1.5 active:scale-95 transition cursor-pointer shadow-xs"
+              title="Switch active worker or lock counter"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-btn animate-pulse" />
+              <span className="text-muted text-[11px] hidden sm:inline">
+                {activeStaffMember.role === 'manager' ? 'Manager:' : 'Cashier:'}
               </span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-surface-muted border border-theme font-mono uppercase text-muted font-bold">
-                {currentUser.role === 'OWNER' ? 'Owner' : 'Cashier'}
+              <span className="font-bold text-primary truncate max-w-[85px] sm:max-w-[110px]">
+                {activeStaffMember.name}
               </span>
-            </div>
+              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                Switch
+              </span>
+            </button>
           </div>
 
           {/* Right: Subtle Floating Demo/Store Pill + Language Switcher [ EN | CEB ] + Compact Theme Switcher [ ☀️ / 🌙 ] */}
@@ -1351,6 +1492,23 @@ export function App() {
                     <div className="pt-1 border-t border-theme space-y-1.5">
                       <button
                         type="button"
+                        onClick={() => {
+                          setIsStoreSettingsOpen(false);
+                          setIsStoreSettingsModalOpen(true);
+                        }}
+                        className="w-full py-2 px-3 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 font-bold text-xs flex items-center justify-between transition cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Users className="w-3.5 h-3.5" />
+                          <span>Staff &amp; Workers</span>
+                        </div>
+                        <span className="text-[10px] font-mono bg-blue-500/20 px-1.5 py-0.5 rounded">
+                          {staffList.filter((s) => s.is_active !== false).length}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={handleSignOut}
                         className="w-full py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
                       >
@@ -1405,6 +1563,7 @@ export function App() {
               products={products}
               cart={cart}
               currentRole={currentUser.role}
+              permissions={activeStaffMember.permissions}
               customerName={activeCustomer?.name}
               onAddProduct={handleAddProduct}
               onDecrementProduct={handleDecrementProduct}
@@ -1428,6 +1587,7 @@ export function App() {
             <InventoryHub
               products={products}
               currentRole={currentUser.role}
+              permissions={activeStaffMember.permissions}
               environmentMode={environmentMode}
               isOcrModalOpen={isOcrModalOpen}
               onOpenOcrModal={() => setIsOcrModalOpen(true)}
@@ -1560,6 +1720,7 @@ export function App() {
               transactions={transactions}
               creditPayments={creditPayments}
               currentRole={currentUser.role}
+              permissions={activeStaffMember.permissions}
               initialSortBy={pautangSortBy}
               ownerPin={users.find((u) => u.role === 'OWNER')?.pin || '9999'}
               onRecordRepayment={handleRecordRepayment}
@@ -1568,9 +1729,10 @@ export function App() {
           )}
 
           {activeTab === 'OWNER' &&
-            (currentUser.role === 'OWNER' ? (
+            (currentUser.role === 'OWNER' || activeStaffMember.role === 'manager' || activeStaffMember.permissions.can_view_margins ? (
               <OwnerDashboard
                 currentRole={currentUser.role}
+                permissions={activeStaffMember.permissions}
                 products={products}
                 customers={customers}
                 shifts={shifts}
@@ -1794,8 +1956,7 @@ export function App() {
                 onClick={() => {
                   triggerHapticFeedback('tap');
                   setIsUserMenuOpen(false);
-                  setShiftModalTab('PIN_SWITCH');
-                  setIsShiftModalOpen(true);
+                  setIsCashierSwitchModalOpen(true);
                 }}
                 className="w-full p-2.5 rounded-xl bg-surface-muted hover:bg-slate-200 dark:hover:bg-slate-700/60 border border-theme flex items-center gap-3 transition active:scale-[0.99] text-left cursor-pointer group"
               >
@@ -2009,6 +2170,36 @@ export function App() {
           setCompletedSale(null);
           setCart([]);
           setActiveTab('REGISTER');
+        }}
+      />
+
+      {/* Store Settings & Multi-Worker Staff Management */}
+      <StoreSettingsModal
+        isOpen={isStoreSettingsModalOpen}
+        onClose={() => setIsStoreSettingsModalOpen(false)}
+        storeProfile={storeProfile}
+        staffList={staffList}
+        activeStaffMember={activeStaffMember}
+        isOwner={currentUser.role === 'OWNER' || activeStaffMember.role === 'manager'}
+        onAddStaff={handleAddStaff}
+        onUpdateStaff={handleUpdateStaff}
+        onDeactivateStaff={handleDeactivateStaff}
+        onSignOut={handleSignOut}
+        googleUser={googleUser}
+      />
+
+      {/* Quick Cashier / Worker Switch Keypad Modal */}
+      <CashierSwitchModal
+        isOpen={isCashierSwitchModalOpen}
+        onClose={() => setIsCashierSwitchModalOpen(false)}
+        activeStaffMember={activeStaffMember}
+        staffList={staffList}
+        ownerStaff={ownerStaff}
+        onSwitchStaff={handleSwitchStaff}
+        onLockCounter={() => {
+          setIsStationLocked(true);
+          setLockPinInput('');
+          setLockPinError('');
         }}
       />
     </div>

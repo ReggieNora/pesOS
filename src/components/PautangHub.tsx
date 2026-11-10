@@ -25,6 +25,7 @@ import {
   CreditPayment,
   Customer,
   Role,
+  StaffPermissions,
   TransactionRecord,
 } from '../types/pos';
 import { formatPeso, formatPesoExact, triggerHapticFeedback } from '../utils/localDb';
@@ -40,6 +41,7 @@ interface PautangHubProps {
   currentRole?: Role;
   initialSortBy?: 'HIGHEST_BALANCE' | 'OLDEST_DEBT';
   ownerPin?: string;
+  permissions?: StaffPermissions;
 }
 
 export const PautangHub: React.FC<PautangHubProps> = React.memo(({
@@ -51,8 +53,10 @@ export const PautangHub: React.FC<PautangHubProps> = React.memo(({
   currentRole = 'OWNER',
   initialSortBy = 'HIGHEST_BALANCE',
   ownerPin = '9999',
+  permissions,
 }) => {
   const { t } = useLanguage();
+  const canSettlePautang = permissions ? permissions.can_settle_pautang : currentRole === 'OWNER';
   const [sortBy, setSortBy] = useState<'HIGHEST_BALANCE' | 'OLDEST_DEBT'>(
     initialSortBy || 'HIGHEST_BALANCE'
   );
@@ -560,14 +564,23 @@ export const PautangHub: React.FC<PautangHubProps> = React.memo(({
                 {/* Confirm Repayment Action */}
                 <button
                   type="button"
-                  disabled={!repayAmount || parseFloat(repayAmount) <= 0}
+                  disabled={!canSettlePautang || !repayAmount || parseFloat(repayAmount) <= 0}
                   onClick={() => handleExecuteRepayment()}
-                  className="w-full min-h-[50px] rounded-xl bg-emerald-btn hover:opacity-95 text-white font-black text-xs uppercase tracking-wide flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.99] disabled:opacity-40"
+                  className="w-full min-h-[50px] rounded-xl bg-emerald-btn hover:opacity-95 text-white font-black text-xs uppercase tracking-wide flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <Coins className="w-4 h-4 stroke-[2.5]" />
-                  <span>
-                    {t('pautang.confirm_repayment')} ({formatPesoExact(parseFloat(repayAmount) || 0)})
-                  </span>
+                  {!canSettlePautang ? (
+                    <>
+                      <Lock className="w-4 h-4" />
+                      <span>Settlement Restricted (Manager Only)</span>
+                    </>
+                  ) : (
+                    <>
+                      <Coins className="w-4 h-4 stroke-[2.5]" />
+                      <span>
+                        {t('pautang.confirm_repayment')} ({formatPesoExact(parseFloat(repayAmount) || 0)})
+                      </span>
+                    </>
+                  )}
                 </button>
               </div>
 

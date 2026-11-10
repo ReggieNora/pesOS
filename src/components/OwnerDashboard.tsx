@@ -10,6 +10,7 @@ import {
   DollarSign,
   FileText,
   Flame,
+  Lock,
   Minus,
   Package,
   PackageX,
@@ -31,6 +32,7 @@ import {
   Product,
   Role,
   ShiftRecord,
+  StaffPermissions,
   TransactionRecord,
 } from '../types/pos';
 import { formatPeso, formatPesoExact, triggerHapticFeedback } from '../utils/localDb';
@@ -59,6 +61,7 @@ interface OwnerDashboardProps {
   onTriggerOcrRestock: () => void;
   onApplyDeadStockPromo: (productId: string) => void;
   onAddCashMovement?: (type: 'IN' | 'OUT', amount: number, reason: string) => void;
+  permissions?: StaffPermissions;
 }
 
 export const OwnerDashboard: React.FC<OwnerDashboardProps> = React.memo(({
@@ -75,8 +78,10 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = React.memo(({
   onTriggerOcrRestock,
   onApplyDeadStockPromo,
   onAddCashMovement,
+  permissions,
 }) => {
   const { t } = useLanguage();
+  const canViewMargins = permissions ? permissions.can_view_margins : currentRole === 'OWNER';
   // Modal & Drawer Drill-Down States
   const [isTxLogOpen, setIsTxLogOpen] = useState(false);
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null);
@@ -292,27 +297,40 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = React.memo(({
           role="button"
           tabIndex={0}
           onClick={() => {
+            if (!canViewMargins) return;
             triggerHapticFeedback('tap');
             setIsProfitModalOpen(true);
           }}
           onKeyDown={(e) => {
+            if (!canViewMargins) return;
             if (e.key === 'Enter') setIsProfitModalOpen(true);
           }}
-          className="rounded-2xl bg-surface border border-theme p-4 shadow-sm space-y-2 cursor-pointer transition-all hover:border-blue-500/40 hover:shadow-md active:scale-[0.99] text-left group w-full"
+          className={`rounded-2xl bg-surface border border-theme p-4 shadow-sm space-y-2 transition-all text-left w-full ${
+            canViewMargins
+              ? 'cursor-pointer hover:border-blue-500/40 hover:shadow-md active:scale-[0.99] group'
+              : 'opacity-80 cursor-not-allowed'
+          }`}
         >
           <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-muted">
             <span>{t('dashboard.net_profit')}</span>
             <div className="flex items-center gap-1.5">
               <TrendingUp className="w-4 h-4 text-emerald-btn" />
-              <ArrowUpRight className="w-3.5 h-3.5 text-muted group-hover:text-emerald-btn group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+              {canViewMargins ? (
+                <ArrowUpRight className="w-3.5 h-3.5 text-muted group-hover:text-emerald-btn group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+              ) : (
+                <Lock className="w-3.5 h-3.5 text-amber-500" />
+              )}
             </div>
           </div>
-          <div className="text-2xl font-mono font-black text-emerald-btn">
-            {formatPeso(netProfit)}
+          <div className="text-2xl font-mono font-black text-emerald-btn flex items-center gap-2">
+            <span>{canViewMargins ? formatPeso(netProfit) : '₱••••••'}</span>
+            {!canViewMargins && <span className="text-xs font-mono text-muted">(Locked)</span>}
           </div>
           <div className="text-xs text-emerald-btn font-mono font-bold flex items-center justify-between pt-1 border-t border-theme">
-            <span>{profitMarginPct.toFixed(1)}% Markup</span>
-            <span className="text-muted font-normal underline">Cost Audit →</span>
+            <span>{canViewMargins ? `${profitMarginPct.toFixed(1)}% Markup` : 'Locked for Role'}</span>
+            <span className="text-muted font-normal underline">
+              {canViewMargins ? 'Cost Audit →' : '🔒 Manager Only'}
+            </span>
           </div>
         </div>
 
@@ -442,7 +460,9 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = React.memo(({
                 <p className="text-[11px] text-muted leading-tight">
                   Tying up{' '}
                   <strong className="text-primary">
-                    {formatPeso(deadStockItem.stockQty * deadStockItem.wholesaleCost)}
+                    {canViewMargins
+                      ? formatPeso(deadStockItem.stockQty * deadStockItem.wholesaleCost)
+                      : '₱•••••• (Locked)'}
                   </strong>{' '}
                   working capital. Run promo to liquidate.
                 </p>

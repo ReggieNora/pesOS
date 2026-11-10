@@ -5,6 +5,7 @@ import {
   Check,
   Edit3,
   ExternalLink,
+  Lock,
   Minus,
   Package,
   PackagePlus,
@@ -14,7 +15,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { CATEGORIES, OCR_INVOICE_PRESETS } from '../data/mockSariSariData';
-import { EnvironmentMode, OcrInvoicePreset, Product, Role } from '../types/pos';
+import { EnvironmentMode, OcrInvoicePreset, Product, Role, StaffPermissions } from '../types/pos';
 import { formatPeso, formatPesoExact, triggerHapticFeedback } from '../utils/localDb';
 import { NativeModal } from './NativeModal';
 import { ItemProfileDrawer } from './ItemProfileDrawer';
@@ -40,6 +41,7 @@ interface InventoryHubProps {
   onCommitOcrInvoice: (preset: OcrInvoicePreset) => void;
   onSaveProductProfile?: (product: Product, isNew: boolean) => void;
   initialFilterLowOnly?: boolean;
+  permissions?: StaffPermissions;
 }
 
 export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
@@ -54,8 +56,11 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
   onCommitOcrInvoice,
   onSaveProductProfile,
   initialFilterLowOnly = false,
+  permissions,
 }) => {
   const { t, getCategory, getUnit } = useLanguage();
+  const canEditInventory = permissions ? permissions.can_edit_inventory : currentRole === 'OWNER';
+  const canViewMargins = permissions ? permissions.can_view_margins : currentRole === 'OWNER';
   const [searchQuery, setSearchQuery] = useState('');
   const [filterLowOnly, setFilterLowOnly] = useState(initialFilterLowOnly);
 
@@ -193,29 +198,36 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
         {/* Sticky Header: AI OCR Action + Search + Filter Pills */}
         <div className="shrink-0 p-3 border-b border-theme space-y-2.5 bg-surface">
           {/* Top Actions: [+ Add New Item] & AI Camera OCR Stock-In CTA */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleOpenNewItem}
-              className="flex-1 min-h-[38px] px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wide flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition cursor-pointer"
-            >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>{t('inventory.add_new_item')}</span>
-            </button>
+          {canEditInventory ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleOpenNewItem}
+                className="flex-1 min-h-[38px] px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wide flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition cursor-pointer"
+              >
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                <span>{t('inventory.add_new_item')}</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                triggerHapticFeedback('tap');
-                onOpenOcrModal();
-              }}
-              className="min-h-[38px] px-3 rounded-xl bg-[#006AFF] hover:bg-blue-600 text-white font-black text-xs uppercase tracking-wide flex items-center gap-1 shrink-0 shadow-sm active:scale-95 transition cursor-pointer"
-              title="Snap wholesaler invoice to auto-commit"
-            >
-              <Camera className="w-3.5 h-3.5 stroke-[2.25]" />
-              <span>{t('inventory.ai_ocr')}</span>
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHapticFeedback('tap');
+                  onOpenOcrModal();
+                }}
+                className="min-h-[38px] px-3 rounded-xl bg-[#006AFF] hover:bg-blue-600 text-white font-black text-xs uppercase tracking-wide flex items-center gap-1 shrink-0 shadow-sm active:scale-95 transition cursor-pointer"
+                title="Snap wholesaler invoice to auto-commit"
+              >
+                <Camera className="w-3.5 h-3.5 stroke-[2.25]" />
+                <span>{t('inventory.ai_ocr')}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-surface-muted border border-theme text-muted text-[11px] font-mono">
+              <Lock className="w-3.5 h-3.5 text-amber-badge shrink-0" />
+              <span>Inventory editing locked for role</span>
+            </div>
+          )}
 
           {/* Search Bar */}
           <div className="relative">
@@ -489,34 +501,55 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
                 </div>
 
                 <div className="rounded-xl p-3 bg-surface-muted border border-theme">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted block">
-                    {t('inventory.wholesale_cost')}
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted block flex items-center justify-between">
+                    <span>{t('inventory.wholesale_cost')}</span>
+                    {!canViewMargins && <Lock className="w-3 h-3 text-amber-500" />}
                   </span>
                   <div className="text-2xl font-mono font-black text-primary mt-1">
-                    {formatPesoExact(selectedProduct.wholesaleCost)}
+                    {canViewMargins ? formatPesoExact(selectedProduct.wholesaleCost) : '₱••••'}
                   </div>
                   <span className="text-[10px] font-mono text-muted block mt-1">
-                    Supplier unit cost
+                    {canViewMargins ? 'Supplier unit cost' : 'Cost hidden 🔒'}
                   </span>
                 </div>
 
                 <div className="rounded-xl p-3 bg-surface-muted border border-theme">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-btn block">
-                    {t('inventory.profit_margin')}
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-btn block flex items-center justify-between">
+                    <span>{t('inventory.profit_margin')}</span>
+                    {!canViewMargins && <Lock className="w-3 h-3 text-amber-500" />}
                   </span>
                   <div className="text-2xl font-mono font-black text-emerald-btn mt-1">
-                    +{Math.round(
-                      ((selectedProduct.sellingPrice - selectedProduct.wholesaleCost) /
-                        selectedProduct.sellingPrice) *
-                        100
+                    {canViewMargins ? (
+                      `+${Math.round(
+                        ((selectedProduct.sellingPrice - selectedProduct.wholesaleCost) /
+                          selectedProduct.sellingPrice) *
+                          100
+                      )}%`
+                    ) : (
+                      '••••%'
                     )}
-                    %
                   </div>
                   <span className="text-[10px] font-mono text-emerald-btn block mt-1">
-                    +{formatPesoExact(selectedProduct.sellingPrice - selectedProduct.wholesaleCost)} {t('inventory.profit_per_unit')}
+                    {canViewMargins ? (
+                      `+${formatPesoExact(selectedProduct.sellingPrice - selectedProduct.wholesaleCost)} ${t('inventory.profit_per_unit')}`
+                    ) : (
+                      'Restricted for role 🔒'
+                    )}
                   </span>
                 </div>
               </div>
+
+              {!canEditInventory && (
+                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center gap-3">
+                  <Lock className="w-5 h-5 shrink-0" />
+                  <div className="text-xs">
+                    <span className="font-bold block">Stock Adjustments Restricted</span>
+                    <span className="text-muted text-[11px]">
+                      Your active cashier account has view-only permissions for inventory.
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Mode: RESTOCK (Square Stock Count Screen) */}
               {paneMode === 'RESTOCK' ? (
@@ -988,6 +1021,8 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
         onClose={() => setIsItemDrawerOpen(false)}
         product={drawerProduct}
         environmentMode={environmentMode}
+        canEditInventory={canEditInventory}
+        canViewMargins={canViewMargins}
         onSave={(savedProduct, isNew) => {
           if (onSaveProductProfile) {
             onSaveProductProfile(savedProduct, isNew);

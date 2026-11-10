@@ -1,5 +1,52 @@
 export type Role = 'CASHIER' | 'OWNER';
 
+export interface StaffPermissions {
+  can_checkout: boolean;
+  can_record_pautang: boolean;
+  can_settle_pautang: boolean;
+  can_edit_inventory: boolean;
+  can_view_margins: boolean;
+  can_export_reports: boolean;
+}
+
+export interface StoreStaff {
+  id: string;
+  store_id: string;
+  name: string;
+  pin: string;
+  role: 'cashier' | 'manager';
+  is_active: boolean;
+  permissions: StaffPermissions;
+  created_at?: string;
+}
+
+export const DEFAULT_OWNER_PERMISSIONS: StaffPermissions = {
+  can_checkout: true,
+  can_record_pautang: true,
+  can_settle_pautang: true,
+  can_edit_inventory: true,
+  can_view_margins: true,
+  can_export_reports: true,
+};
+
+export const DEFAULT_CASHIER_PERMISSIONS: StaffPermissions = {
+  can_checkout: true,
+  can_record_pautang: true,
+  can_settle_pautang: false,
+  can_edit_inventory: false,
+  can_view_margins: false,
+  can_export_reports: false,
+};
+
+export const DEFAULT_MANAGER_PERMISSIONS: StaffPermissions = {
+  can_checkout: true,
+  can_record_pautang: true,
+  can_settle_pautang: true,
+  can_edit_inventory: true,
+  can_view_margins: true,
+  can_export_reports: true,
+};
+
 export type CategoryId =
   | 'favorites'
   | 'beverages'
