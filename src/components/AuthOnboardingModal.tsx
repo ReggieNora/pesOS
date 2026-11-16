@@ -11,7 +11,6 @@ import {
   PackageCheck,
   Plus,
   Rocket,
-  RotateCcw,
   Sparkles,
   Store,
   Sun,
@@ -297,118 +296,85 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
         {view === 'GATEWAY' && (
           <div className="p-6 space-y-6">
             {/* Brand Header with pesOS Logo */}
-            <div className="text-center space-y-3 pt-2 flex flex-col items-center">
+            <div className="text-center space-y-2 pt-2 flex flex-col items-center">
               <PesOSLogo imageHeightClass="h-12 md:h-14" />
-              <div>
-                <p className="text-xs font-bold text-primary tracking-wide">
-                  Smart Sari-Sari POS
-                </p>
-                <p className="text-[11px] font-medium text-muted mt-0.5">
-                  Offline-First Register &amp; Pautang Ledger
-                </p>
-              </div>
+              <p className="text-xs font-bold text-primary tracking-wide">
+                Smart Sari-Sari POS
+              </p>
             </div>
 
-            {/* PRIMARY ENTRY POINT: CONTINUE WITH GOOGLE (Center Stage) */}
-            <div className="rounded-2xl bg-surface-muted border border-theme p-4 space-y-3 shadow-sm text-center">
-              <div className="space-y-1">
-                <span className="px-2.5 py-0.5 rounded-full bg-[#2563EB]/15 border border-[#2563EB]/40 text-[#2563EB] dark:text-blue-400 font-mono font-bold text-[10px] uppercase">
-                  Recommended • 1-Tap Entry
-                </span>
-                <h2 className="text-sm font-black text-primary pt-1">
-                  Connect &amp; Open Your Store
-                </h2>
-                <p className="text-xs text-muted leading-relaxed">
-                  Sign in or create your sari-sari store account instantly with Google.
-                </p>
-              </div>
+            {/* PRIMARY ENTRY POINT: CONTINUE WITH GOOGLE */}
+            <button
+              type="button"
+              onClick={async () => {
+                triggerHapticFeedback('tap');
+                if (onGoogleSignIn) {
+                  await onGoogleSignIn();
+                }
+              }}
+              disabled={isGoogleLoading || isLoading}
+              className="w-full py-3.5 rounded-xl bg-white text-slate-900 font-semibold shadow-lg hover:bg-slate-100 flex items-center justify-center gap-3 active:scale-[0.98] transition cursor-pointer disabled:opacity-50"
+            >
+              <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.03h3.89c2.28-2.1 3.65-5.2 3.65-9.12z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.89-3.03c-1.08.72-2.45 1.16-4.04 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.13C3.27 21.43 7.35 24 12 24z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.28 14.29c-.25-.72-.38-1.49-.38-2.29s.13-1.57.38-2.29V6.58H1.25C.45 8.17 0 9.99 0 12s.45 3.83 1.25 5.42l4.03-3.13z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.27 2.57 1.25 6.58l4.03 3.13c.95-2.83 3.6-4.96 6.72-4.96z"
+                />
+              </svg>
+              <span>{isGoogleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={async () => {
-                  triggerHapticFeedback('tap');
-                  if (onGoogleSignIn) {
-                    await onGoogleSignIn();
-                  }
-                }}
-                disabled={isGoogleLoading || isLoading}
-                className="w-full min-h-[56px] rounded-2xl bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-850 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-extrabold text-sm flex items-center justify-center gap-3 shadow-md active:scale-[0.98] transition cursor-pointer disabled:opacity-50"
-              >
-                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.03h3.89c2.28-2.1 3.65-5.2 3.65-9.12z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.89-3.03c-1.08.72-2.45 1.16-4.04 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.13C3.27 21.43 7.35 24 12 24z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.28 14.29c-.25-.72-.38-1.49-.38-2.29s.13-1.57.38-2.29V6.58H1.25C.45 8.17 0 9.99 0 12s.45 3.83 1.25 5.42l4.03-3.13z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.27 2.57 1.25 6.58l4.03 3.13c.95-2.83 3.6-4.96 6.72-4.96z"
-                  />
-                </svg>
-                <span>{isGoogleLoading ? 'Connecting to Google...' : 'Continue with Google'}</span>
-              </button>
-            </div>
-
-            {/* Divider */}
+            {/* Minimal 'or' Divider */}
             <div className="relative flex items-center justify-center">
               <div className="border-t border-theme w-full" />
-              <span className="bg-surface px-3 text-[10px] font-mono uppercase tracking-widest text-muted shrink-0">
-                Or Continue With
+              <span className="bg-surface px-3 text-xs text-slate-500 uppercase tracking-wider shrink-0">
+                or
               </span>
               <div className="border-t border-theme w-full" />
             </div>
 
-            {/* SECONDARY OPTIONS: Cashier PIN Unlock & Demo Mode */}
-            <div className="space-y-2.5">
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHapticFeedback('tap');
-                  setView('SIGN_IN');
-                }}
-                className="w-full min-h-[48px] rounded-2xl bg-surface-muted hover:bg-slate-200 dark:hover:bg-slate-700/60 border border-theme text-primary font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] transition cursor-pointer"
-              >
-                <KeyRound className="w-4 h-4 text-[#2563EB] stroke-[2.5]" />
-                <span>
-                  🔑 Cashier PIN Unlock
-                  {existingLiveStore
-                    ? ` (${existingLiveStore.profile.storeName})`
-                    : ''}
-                </span>
-              </button>
+            {/* SECONDARY ACTION: Cashier PIN Unlock */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHapticFeedback('tap');
+                setView('SIGN_IN');
+              }}
+              className="w-full py-3 rounded-xl bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 text-slate-200 text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition cursor-pointer"
+            >
+              <KeyRound className="w-4 h-4 text-slate-400" />
+              <span>
+                Cashier PIN Unlock
+                {existingLiveStore
+                  ? ` (${existingLiveStore.profile.storeName})`
+                  : ''}
+              </span>
+            </button>
 
+            {/* Subtle Footer Link: Demo Mode */}
+            <div className="text-center pt-2">
               <button
                 type="button"
                 onClick={() => {
                   triggerHapticFeedback('success');
                   onSelectDemoMode();
                 }}
-                className="w-full min-h-[48px] rounded-2xl bg-emerald-btn/15 hover:bg-emerald-btn/25 border border-emerald-btn/50 text-emerald-btn font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 active:scale-[0.98] transition cursor-pointer"
+                className="text-xs text-slate-400 hover:text-white underline-offset-4 hover:underline transition cursor-pointer"
               >
-                <Rocket className="w-4 h-4 stroke-[2.5]" />
-                <span>🚀 Explore Demo Mode (Pre-Loaded Store)</span>
+                Try interactive demo
               </button>
-
-              <div className="flex justify-center pt-0.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onResetDemoData();
-                    onSelectDemoMode();
-                  }}
-                  className="text-[11px] font-mono text-muted hover:text-primary flex items-center gap-1 transition"
-                >
-                  <RotateCcw className="w-3 h-3 text-amber-badge" />
-                  <span>Reset Demo Data to Clean State</span>
-                </button>
-              </div>
             </div>
           </div>
         )}

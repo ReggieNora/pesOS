@@ -9,6 +9,7 @@ import {
   Moon,
   Package,
   RefreshCw,
+  RotateCcw,
   ShieldCheck,
   ShoppingCart,
   Store,
@@ -1472,16 +1473,27 @@ export function App() {
           {/* Right: Subtle Floating Demo/Store Pill + Language Switcher [ EN | CEB ] + Compact Theme Switcher [ ☀️ / 🌙 ] */}
           <div className="flex items-center gap-2 shrink-0">
             {environmentMode === 'DEMO' ? (
-              <button
-                type="button"
-                onClick={handleExitDemoOrStore}
-                title="Exit Demo Mode & return to App Entry Gateway"
-                className="h-8 px-2.5 rounded-full bg-surface-muted border border-theme hover:border-amber-badge text-[10px] font-mono font-bold text-primary flex items-center gap-1.5 active:scale-95 transition shrink-0 shadow-sm cursor-pointer"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-btn" />
-                <span className="hidden sm:inline">{t('header.demo_mode')} •</span>
-                <span className="text-amber-badge font-extrabold">{t('header.exit_demo')}</span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleResetDemoData}
+                  title="Reset Demo Data"
+                  className="h-8 px-2 rounded-full bg-surface-muted border border-theme hover:border-amber-badge text-[10px] font-mono text-muted hover:text-amber-badge flex items-center gap-1 active:scale-95 transition shrink-0 shadow-sm cursor-pointer"
+                >
+                  <RotateCcw className="w-3 h-3 text-amber-badge" />
+                  <span className="hidden md:inline">Reset</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExitDemoOrStore}
+                  title="Exit Demo Mode & return to App Entry Gateway"
+                  className="h-8 px-2.5 rounded-full bg-surface-muted border border-theme hover:border-amber-badge text-[10px] font-mono font-bold text-primary flex items-center gap-1.5 active:scale-95 transition shrink-0 shadow-sm cursor-pointer"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-btn" />
+                  <span className="hidden sm:inline">{t('header.demo_mode')} •</span>
+                  <span className="text-amber-badge font-extrabold">{t('header.exit_demo')}</span>
+                </button>
+              </div>
             ) : (
               <div className="relative">
                 <button
