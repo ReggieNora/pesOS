@@ -61,6 +61,15 @@ export const TRANSLATIONS: Record<Locale, Record<string, string>> = {
     'unit.items': 'items',
 
     // Register / Catalog / Quick Actions
+    'catalog.categories_actions': 'Categories & Actions',
+    'catalog.tap_category_hint': 'Tap a category to filter',
+    'catalog.custom_amount': 'Custom Amount',
+    'catalog.custom_item': 'Custom Item',
+    'catalog.search_placeholder': 'Search products, SKU, snacks...',
+    'catalog.left': 'left',
+    'CATALOG.CATEGORIES_ACTIONS': 'Categories & Actions',
+    'CATALOG.TAP_CATEGORY_HINT': 'Tap a category to filter',
+    'CATALOG.CUSTOM_AMOUNT': 'Custom Amount',
     'register.categories_actions': 'Categories & Quick Actions',
     'register.tap_category_hint': 'Tap category to view items',
     'register.all_categories': 'All Categories',
@@ -256,6 +265,15 @@ export const TRANSLATIONS: Record<Locale, Record<string, string>> = {
     'unit.items': 'kabuok baligya',
 
     // Register / Catalog / Quick Actions
+    'catalog.categories_actions': 'Mga Kategorya',
+    'catalog.tap_category_hint': 'Pindota ang kategorya',
+    'catalog.custom_amount': 'Custom nga Kantidad',
+    'catalog.custom_item': 'Kinaugalingong Palitonon',
+    'catalog.search_placeholder': 'Pangitaa ang baligya, SKU, o snacks...',
+    'catalog.left': 'nahibilin',
+    'CATALOG.CATEGORIES_ACTIONS': 'Mga Kategorya',
+    'CATALOG.TAP_CATEGORY_HINT': 'Pindota ang kategorya',
+    'CATALOG.CUSTOM_AMOUNT': 'Custom nga Kantidad',
     'register.categories_actions': 'Klase sa Baligya & Laktod nga Buhaton',
     'register.tap_category_hint': 'Pislita ang klase para makita ang baligya',
     'register.all_categories': 'Tanan Klase',

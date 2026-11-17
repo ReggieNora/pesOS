@@ -4,6 +4,7 @@ import {
   BarChart3,
   ChevronDown,
   Eye,
+  KeyRound,
   Lock,
   LogOut,
   Moon,
@@ -235,10 +236,6 @@ export function App() {
     initialSnapshot.auditLogs
   );
 
-  // Active User / Role (Default to first operator in the environment)
-  const [currentUser, setCurrentUser] = useState<UserProfile>(
-    initialSnapshot.users[0] || USERS[0]
-  );
   const [activeTab, setActiveTab] = useState<NavTab>('REGISTER');
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
   const [pendingSyncCount, setPendingSyncCount] = useState<number>(0);
@@ -274,8 +271,7 @@ export function App() {
   const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState<CompletedSaleSummary | null>(null);
 
-  // User Profile Quick Actions & Station Lock State
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  // Station Lock State
   const [isStationLocked, setIsStationLocked] = useState(false);
   const [lockPinInput, setLockPinInput] = useState('');
   const [lockPinError, setLockPinError] = useState('');
@@ -300,6 +296,7 @@ export function App() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isStoreSettingsOpen, setIsStoreSettingsOpen] = useState(false);
   const [isStoreSettingsModalOpen, setIsStoreSettingsModalOpen] = useState(false);
+  const [storeSettingsInitialTab, setStoreSettingsInitialTab] = useState<'PROFILE' | 'STAFF'>('STAFF');
   const [isCashierSwitchModalOpen, setIsCashierSwitchModalOpen] = useState(false);
 
   // Staff & Worker Management State
@@ -351,18 +348,25 @@ export function App() {
     return sessionStaff || ownerStaff;
   });
 
+  // Single unified authority for active session: currentUser is derived directly from activeStaffMember
+  const currentUser: UserProfile = useMemo(() => {
+    const isManagerOrOwner =
+      activeStaffMember.role === 'manager' ||
+      activeStaffMember.id === ownerStaff.id ||
+      activeStaffMember.id === 'usr-owner';
+    return {
+      id: activeStaffMember.id,
+      name: activeStaffMember.name,
+      role: isManagerOrOwner ? 'OWNER' : 'CASHIER',
+      pin: activeStaffMember.pin,
+      badge: activeStaffMember.name.slice(0, 2).toUpperCase(),
+    };
+  }, [activeStaffMember, ownerStaff.id]);
+
   const handleSwitchStaff = (newStaff: StoreStaff) => {
     setActiveStaffMember(newStaff);
     setActiveStaffSession(storeProfile.id, newStaff);
-    const mappedRole: Role = newStaff.role === 'manager' ? 'OWNER' : 'CASHIER';
-    setCurrentUser({
-      id: newStaff.id,
-      name: newStaff.name,
-      role: mappedRole,
-      pin: newStaff.pin,
-      badge: newStaff.name.slice(0, 2).toUpperCase(),
-    });
-    showToast(`Switched active cashier to ${newStaff.name} (${newStaff.role})`);
+    showToast(`Switched active cashier to ${newStaff.name} (${newStaff.role === 'manager' ? 'Owner' : 'Cashier'})`);
   };
 
   const handleAddStaff = async (staff: Omit<StoreStaff, 'id'>) => {
@@ -519,7 +523,17 @@ export function App() {
     setTransactions(snap.transactions);
     setCreditPayments(snap.creditPayments);
     setAuditLogs(snap.auditLogs);
-    setCurrentUser(activeOperator || snap.users[0] || USERS[0]);
+    const defaultStaff: StoreStaff = {
+      id: 'owner-admin',
+      store_id: snap.profile.id,
+      name: snap.profile.ownerName || 'Store Owner',
+      pin: snap.users.find((u) => u.role === 'OWNER')?.pin || '9999',
+      role: 'manager',
+      is_active: true,
+      permissions: { ...DEFAULT_OWNER_PERMISSIONS },
+    };
+    setActiveStaffMember(defaultStaff);
+    setActiveStaffSession(snap.profile.id, defaultStaff);
     setCart(
       mode === 'DEMO'
         ? [
@@ -744,7 +758,6 @@ export function App() {
 
   const handleSignOut = async () => {
     triggerHapticFeedback('tap');
-    setIsUserMenuOpen(false);
     setIsStoreSettingsOpen(false);
     await signOutAuth();
     setGoogleUser(null);
@@ -830,9 +843,8 @@ export function App() {
         setLockPinInput('');
       } else if (matchedUser) {
         triggerHapticFeedback('success');
-        if (matchedUser.id !== currentUser.id) {
-          setCurrentUser(matchedUser);
-        }
+        const st = allStaff.find((s) => s.id === matchedUser.id || s.pin === matchedUser.pin) || ownerStaff;
+        handleSwitchStaff(st);
         setIsStationLocked(false);
         setLockPinInput('');
       } else {
@@ -1359,20 +1371,8 @@ export function App() {
     showToast(`OCR Stock-In Committed: ${preset.invoiceNo}`);
   };
 
-  const cashierInitials = useMemo(() => {
-    const parts = currentUser.name.trim().split(/\s+/);
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return currentUser.name.slice(0, 2).toUpperCase();
-  }, [currentUser.name]);
-
   const isOwner = currentUser.role === 'OWNER';
-  const roleDisplayName = isOwner
-    ? currentUser.name === 'Bossing'
-      ? 'Bossing (Admin)'
-      : 'Owner'
-    : 'Cashier';
+  const activeWorkerBadge = isOwner ? 'Owner' : activeStaffMember.name;
 
   const navItems: {
     id: NavTab;
@@ -1443,31 +1443,6 @@ export function App() {
                 />
               </span>
             </button>
-
-            {/* Slim Vertical Divider */}
-            <div className="h-4 w-px bg-theme shrink-0 hidden sm:block" />
-
-            {/* Subtle Active Cashier Switch Pill: [ Cashier: Ate May | Switch ] */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHapticFeedback('tap');
-                setIsCashierSwitchModalOpen(true);
-              }}
-              className="h-8 px-2 sm:px-2.5 rounded-full bg-surface-muted border border-theme hover:border-blue-500/50 text-xs font-semibold text-primary flex items-center gap-1.5 active:scale-95 transition cursor-pointer shadow-xs"
-              title="Switch active worker or lock counter"
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-btn animate-pulse" />
-              <span className="text-muted text-[11px] hidden sm:inline">
-                {activeStaffMember.role === 'manager' ? 'Manager:' : 'Cashier:'}
-              </span>
-              <span className="font-bold text-primary truncate max-w-[85px] sm:max-w-[110px]">
-                {activeStaffMember.name}
-              </span>
-              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
-                Switch
-              </span>
-            </button>
           </div>
 
           {/* Right: Language Switcher [ EN | CEB ] + Compact Theme Switcher [ ☀️ / 🌙 ] + Store Profile Dropdown / Demo Pill */}
@@ -1496,117 +1471,155 @@ export function App() {
               )}
             </button>
 
-            {/* 3. Store Profile Dropdown (or Demo Mode Pill) on Far-Right */}
-            {environmentMode === 'DEMO' ? (
-              <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  type="button"
-                  onClick={handleResetDemoData}
-                  title="Reset Demo Data"
-                  className="h-8 px-2 rounded-full bg-surface-muted border border-theme hover:border-amber-badge text-[10px] font-mono text-muted hover:text-amber-badge flex items-center gap-1 active:scale-95 transition shrink-0 shadow-sm cursor-pointer"
-                >
-                  <RotateCcw className="w-3 h-3 text-amber-badge" />
-                  <span className="hidden md:inline">Reset</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleExitDemoOrStore}
-                  title="Exit Demo Mode & return to App Entry Gateway"
-                  className="h-8 px-2.5 rounded-full bg-surface-muted border border-theme hover:border-amber-badge text-[10px] font-mono font-bold text-primary flex items-center gap-1.5 active:scale-95 transition shrink-0 shadow-sm cursor-pointer"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-btn" />
-                  <span className="hidden sm:inline">{t('header.demo_mode')} •</span>
-                  <span className="text-amber-badge font-extrabold">{t('header.exit_demo')}</span>
-                </button>
-              </div>
-            ) : (
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsStoreSettingsOpen((prev) => !prev)}
-                  title="Store Settings & Profile"
-                  className="bg-slate-800/80 hover:bg-slate-800 border border-slate-700 text-slate-100 px-3.5 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition active:scale-95 shrink-0 shadow-sm cursor-pointer"
-                >
-                  <Store className="w-4 h-4 text-blue-400 shrink-0" />
-                  <span className="max-w-[120px] truncate">
-                    {storeProfile.storeName}
-                  </span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                </button>
+            {/* 3. Unified Store Profile & Shift Dropdown on Far-Right */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsStoreSettingsOpen((prev) => !prev)}
+                title="Store & Shift Controls"
+                className="bg-slate-800/80 hover:bg-slate-800 border border-slate-700 text-slate-100 px-3.5 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition active:scale-95 shrink-0 shadow-sm cursor-pointer"
+              >
+                <Store className="w-4 h-4 text-blue-400 shrink-0" />
+                <span className="max-w-[140px] sm:max-w-[200px] truncate">
+                  {storeProfile.storeName} • {activeWorkerBadge}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              </button>
 
-                {isStoreSettingsOpen && (
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-surface border border-theme shadow-2xl p-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-3 text-left"
-                  >
-                    <div className="flex items-center gap-2.5 pb-2 border-b border-theme">
-                      {googleUser?.user_metadata?.avatar_url ? (
-                        <img
-                          src={googleUser.user_metadata.avatar_url}
-                          alt="Google Profile"
-                          className="w-9 h-9 rounded-full border border-theme shrink-0"
-                        />
-                      ) : (
-                        <div className="w-9 h-9 rounded-full bg-blue-600/10 text-[#2563EB] flex items-center justify-center font-bold text-xs shrink-0">
-                          {googleUser?.email ? googleUser.email.charAt(0).toUpperCase() : 'G'}
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs font-black text-primary truncate">
-                          {storeProfile.storeName}
-                        </div>
-                        <p className="text-[11px] font-mono text-muted truncate">
-                          {googleUser?.email || storeProfile.ownerName || 'Live Store Owner'}
-                        </p>
-                      </div>
+              {isStoreSettingsOpen && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 top-full mt-2 w-72 sm:w-80 rounded-2xl bg-surface border border-theme shadow-2xl p-3.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-3 text-left"
+                >
+                  {/* Active Shift Status Header */}
+                  <div className="pb-2.5 border-b border-theme space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-primary truncate">
+                        {storeProfile.storeName}
+                      </span>
+                      <span
+                        className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase ${
+                          isOwner
+                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                            : 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
+                        }`}
+                      >
+                        {activeWorkerBadge}
+                      </span>
                     </div>
+                    <p className="text-[11px] text-muted flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-btn animate-pulse shrink-0" />
+                      <span className="truncate">
+                        Active Shift: <strong className="text-primary">{activeStaffMember.name}</strong>
+                      </span>
+                    </p>
+                    {googleUser?.email && (
+                      <p className="text-[10px] font-mono text-muted truncate">
+                        {googleUser.email}
+                      </p>
+                    )}
+                  </div>
 
-                    <div className="space-y-1 text-xs">
-                      <div className="flex items-center justify-between text-muted text-[11px]">
-                        <span>Barangay:</span>
-                        <span className="font-bold text-primary truncate max-w-[140px]">
-                          {storeProfile.barangayCity || 'Local Store'}
-                        </span>
+                  {/* Actions */}
+                  <div className="space-y-1.5">
+                    {/* Switch Cashier / Shift PIN */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsStoreSettingsOpen(false);
+                        setIsCashierSwitchModalOpen(true);
+                      }}
+                      className="w-full py-2.5 px-3 rounded-xl bg-surface-muted hover:bg-slate-200 dark:hover:bg-slate-700/60 border border-theme text-primary font-bold text-xs flex items-center justify-between transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <KeyRound className="w-4 h-4 text-blue-500" />
+                        <span>Switch Cashier / Shift PIN</span>
                       </div>
-                      <div className="flex items-center justify-between text-muted text-[11px]">
-                        <span>Store ID:</span>
-                        <span className="font-mono text-[10px] text-muted truncate max-w-[130px]">
-                          {storeProfile.id}
-                        </span>
-                      </div>
-                    </div>
+                      <span className="text-[10px] font-mono text-muted bg-surface px-1.5 py-0.5 rounded border border-theme">
+                        PIN
+                      </span>
+                    </button>
 
-                    <div className="pt-1 border-t border-theme space-y-1.5">
+                    {/* Manage Staff & Workers */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsStoreSettingsOpen(false);
+                        setStoreSettingsInitialTab('STAFF');
+                        setIsStoreSettingsModalOpen(true);
+                      }}
+                      className="w-full py-2.5 px-3 rounded-xl bg-surface-muted hover:bg-slate-200 dark:hover:bg-slate-700/60 border border-theme text-primary font-bold text-xs flex items-center justify-between transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-emerald-500" />
+                        <span>Manage Staff &amp; Workers</span>
+                      </div>
+                      <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded font-bold">
+                        {staffList.filter((s) => s.is_active !== false).length}
+                      </span>
+                    </button>
+
+                    {/* Store Settings */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsStoreSettingsOpen(false);
+                        setStoreSettingsInitialTab('PROFILE');
+                        setIsStoreSettingsModalOpen(true);
+                      }}
+                      className="w-full py-2.5 px-3 rounded-xl bg-surface-muted hover:bg-slate-200 dark:hover:bg-slate-700/60 border border-theme text-primary font-bold text-xs flex items-center justify-between transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Store className="w-4 h-4 text-amber-500" />
+                        <span>Store Settings</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-muted">
+                        Profile
+                      </span>
+                    </button>
+
+                    {/* If DEMO mode, provide Reset Demo option */}
+                    {environmentMode === 'DEMO' && (
                       <button
                         type="button"
                         onClick={() => {
                           setIsStoreSettingsOpen(false);
-                          setIsStoreSettingsModalOpen(true);
+                          handleResetDemoData();
                         }}
-                        className="w-full py-2 px-3 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 font-bold text-xs flex items-center justify-between transition cursor-pointer"
+                        className="w-full py-2.5 px-3 rounded-xl bg-surface-muted hover:bg-slate-200 dark:hover:bg-slate-700/60 border border-theme text-primary font-bold text-xs flex items-center justify-between transition cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
-                          <Users className="w-3.5 h-3.5" />
-                          <span>Staff &amp; Workers</span>
+                          <RotateCcw className="w-4 h-4 text-amber-badge" />
+                          <span>Reset Demo Data</span>
                         </div>
-                        <span className="text-[10px] font-mono bg-blue-500/20 px-1.5 py-0.5 rounded">
-                          {staffList.filter((s) => s.is_active !== false).length}
+                        <span className="text-[10px] font-mono text-amber-badge">
+                          Reset
                         </span>
                       </button>
-
-                      <button
-                        type="button"
-                        onClick={handleSignOut}
-                        className="w-full py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
-                      >
-                        <LogOut className="w-3.5 h-3.5" />
-                        <span>Sign Out of Store</span>
-                      </button>
-                    </div>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
+
+                  {/* Divider + Sign Out */}
+                  <div className="pt-1.5 border-t border-theme">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsStoreSettingsOpen(false);
+                        if (environmentMode === 'DEMO') {
+                          handleExitDemoOrStore();
+                        } else {
+                          handleSignOut();
+                        }
+                      }}
+                      className="w-full py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>{environmentMode === 'DEMO' ? 'Exit Demo Mode' : 'Sign Out of Store'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
@@ -1803,10 +1816,7 @@ export function App() {
                 transactions={transactions}
                 auditLogs={auditLogs}
                 onSwitchToOwnerPin={() => {
-                  const owner =
-                    users.find((u) => u.role === 'OWNER') ||
-                    USERS.find((u) => u.role === 'OWNER')!;
-                  setCurrentUser(owner);
+                  handleSwitchStaff(ownerStaff);
                 }}
                 onOpenPautangBook={(sort = 'HIGHEST_BALANCE') => {
                   setPautangSortBy(sort);
@@ -1884,57 +1894,12 @@ export function App() {
             ))}
         </main>
 
-        {/* 2. Fixed Bottom Navigation Deck (Evenly Spaced 5-Column Grid matching Square POS) */}
+        {/* 2. Fixed Bottom Navigation Deck (Strictly 4 Operational Tabs with Balanced Spacing) */}
         <nav
           aria-label="Primary Bottom Navigation"
-          className="fixed bottom-0 left-0 right-0 z-40 h-16 pb-safe bg-surface/90 backdrop-blur-md border-t border-theme grid grid-cols-5 items-center px-1 sm:px-4 md:px-8 transition-colors duration-200 shadow-lg"
+          className="fixed bottom-0 left-0 right-0 z-40 h-16 pb-safe bg-surface/90 backdrop-blur-md border-t border-theme grid grid-cols-4 items-center px-2 sm:px-6 md:px-12 transition-colors duration-200 shadow-lg"
         >
-          {/* Column 1: Cashier/Owner Profile Pill with Role Indicator & Switch Action */}
-          <button
-            type="button"
-            onClick={() => {
-              triggerHapticFeedback('tap');
-              setIsUserMenuOpen(true);
-            }}
-            title="Switch User or Lock Station"
-            className="relative h-full w-full flex flex-col items-center justify-center gap-0.5 transition active:scale-95 group cursor-pointer text-muted hover:text-primary px-1"
-          >
-            {/* Visual Role Indicator Ring + Dot */}
-            <div className="relative">
-              <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center font-mono font-black text-[9px] shadow-sm transition-transform group-hover:scale-105 ${
-                  isOwner
-                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/50 ring-2 ring-emerald-500/60'
-                    : 'bg-blue-600/15 text-blue-600 dark:text-blue-400 border border-blue-500/50 ring-2 ring-blue-500/60'
-                }`}
-              >
-                {cashierInitials}
-              </div>
-              <span
-                className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-surface ${
-                  isOwner ? 'bg-emerald-500' : 'bg-blue-500'
-                }`}
-              />
-            </div>
-
-            {/* Line 1: Role Name with status badge */}
-            <span className="text-[10px] font-extrabold text-primary truncate max-w-full leading-tight">
-              {roleDisplayName}
-            </span>
-
-            {/* Line 2 (micro-text/sub-label): Switch User */}
-            <span className="text-[9px] font-medium text-muted truncate max-w-full leading-none group-hover:text-[#006AFF] transition-colors">
-              {t('nav.switch_user')}
-            </span>
-          </button>
-
-          {/* Columns 2 - 5: Primary navigation tabs (Register, Inventory, Pautang, Dashboard) */}
-          {[
-            { id: 'REGISTER' as const, label: t('nav.register'), icon: ShoppingCart },
-            { id: 'INVENTORY' as const, label: t('nav.inventory'), icon: Package },
-            { id: 'PAUTANG_BOOK' as const, label: t('nav.pautang'), icon: Users },
-            { id: 'OWNER' as const, label: t('nav.dashboard'), icon: BarChart3 },
-          ].map(({ id, label, icon: Icon }) => {
+          {navItems.map(({ id, label, icon: Icon }) => {
             const isActive = activeTab === id;
             return (
               <button
@@ -1972,135 +1937,6 @@ export function App() {
           })}
         </nav>
       </div>
-
-      {/* Quick User Switch & Station Lock Popover Sheet */}
-      {isUserMenuOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setIsUserMenuOpen(false)}
-          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex flex-col justify-end sm:justify-end sm:items-start p-3 sm:pb-20 sm:pl-4 animate-in fade-in duration-150"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full sm:w-80 bg-surface rounded-2xl border border-theme shadow-2xl p-4 space-y-3 animate-in slide-in-from-bottom-2 duration-150"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between pb-2 border-b border-theme">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center font-mono font-black text-xs shrink-0 shadow-sm ${
-                    isOwner
-                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/50 ring-2 ring-emerald-500/60'
-                      : 'bg-blue-600/15 text-blue-600 dark:text-blue-400 border border-blue-500/50 ring-2 ring-blue-500/60'
-                  }`}
-                >
-                  {cashierInitials}
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-black text-primary truncate flex items-center gap-1.5">
-                    <span>{currentUser.name}</span>
-                    <span
-                      className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                        isOwner
-                          ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                          : 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
-                      }`}
-                    >
-                      {isOwner ? 'Owner' : 'Cashier'}
-                    </span>
-                  </div>
-                  <p className="text-[10px] font-mono text-muted truncate">
-                    {googleUser?.email ? `${googleUser.email} • ` : ''}Shift #1
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsUserMenuOpen(false)}
-                className="w-7 h-7 rounded-full bg-surface-muted flex items-center justify-center text-muted hover:text-primary cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="space-y-2">
-              {/* Option 1: [ 🔄 Switch User ] */}
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHapticFeedback('tap');
-                  setIsUserMenuOpen(false);
-                  setIsCashierSwitchModalOpen(true);
-                }}
-                className="w-full p-2.5 rounded-xl bg-surface-muted hover:bg-slate-200 dark:hover:bg-slate-700/60 border border-theme flex items-center gap-3 transition active:scale-[0.99] text-left cursor-pointer group"
-              >
-                <div className="w-9 h-9 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <RefreshCw className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-primary flex items-center justify-between">
-                    <span>{t('header.switch_user')}</span>
-                    <span className="text-[10px] font-mono text-muted">PIN Clock-In</span>
-                  </div>
-                  <p className="text-[11px] text-muted truncate">
-                    Switch between Owner &amp; Cashier accounts
-                  </p>
-                </div>
-              </button>
-
-              {/* Option 2: [ 🔒 Lock Station ] */}
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHapticFeedback('warning');
-                  setIsUserMenuOpen(false);
-                  setIsStationLocked(true);
-                  setLockPinInput('');
-                  setLockPinError('');
-                }}
-                className="w-full p-2.5 rounded-xl bg-surface-muted hover:bg-slate-200 dark:hover:bg-slate-700/60 border border-theme flex items-center gap-3 transition active:scale-[0.99] text-left cursor-pointer group"
-              >
-                <div className="w-9 h-9 rounded-lg bg-amber-badge/15 text-amber-badge flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <Lock className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-primary flex items-center justify-between">
-                    <span>{t('header.lock_station')}</span>
-                    <span className="text-[10px] font-mono text-amber-badge font-bold">{t('header.lock_terminal')}</span>
-                  </div>
-                  <p className="text-[11px] text-muted truncate">
-                    Secure POS terminal; requires PIN to resume
-                  </p>
-                </div>
-              </button>
-
-              {/* Option 3: [ Sign Out ] */}
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="w-full p-2.5 rounded-xl bg-surface-muted hover:bg-red-500/10 border border-theme hover:border-red-500/30 flex items-center gap-3 transition active:scale-[0.99] text-left cursor-pointer group"
-              >
-                <div className="w-9 h-9 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <LogOut className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-red-600 dark:text-red-400 flex items-center justify-between">
-                    <span>Sign Out</span>
-                    {googleUser && (
-                      <span className="text-[10px] font-mono text-muted">Google</span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-muted truncate">
-                    {googleUser?.email ? `Sign out of ${googleUser.email}` : 'Exit session and return to entry screen'}
-                  </p>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Station Locked Full-Screen Overlay */}
       {isStationLocked && (
@@ -2341,7 +2177,9 @@ export function App() {
         activeShift={activeShift}
         initialTab={shiftModalTab}
         onSwitchUser={(user) => {
-          setCurrentUser(user);
+          const allStaff = [ownerStaff, ...staffList];
+          const st = allStaff.find((s) => s.id === user.id || s.pin === user.pin) || ownerStaff;
+          handleSwitchStaff(st);
         }}
         onSubmitBlindCount={handleSubmitBlindCount}
       />
@@ -2368,6 +2206,7 @@ export function App() {
         onDeactivateStaff={handleDeactivateStaff}
         onSignOut={handleSignOut}
         googleUser={googleUser}
+        initialTab={storeSettingsInitialTab}
       />
 
       {/* Quick Cashier / Worker Switch Keypad Modal */}

@@ -38,6 +38,7 @@ interface StoreSettingsModalProps {
   onDeactivateStaff: (staffId: string) => Promise<void>;
   onSignOut: () => void;
   googleUser?: any;
+  initialTab?: 'PROFILE' | 'STAFF';
 }
 
 export const StoreSettingsModal: React.FC<StoreSettingsModalProps> = ({
@@ -52,8 +53,15 @@ export const StoreSettingsModal: React.FC<StoreSettingsModalProps> = ({
   onDeactivateStaff,
   onSignOut,
   googleUser,
+  initialTab = 'STAFF',
 }) => {
-  const [activeTab, setActiveTab] = useState<'PROFILE' | 'STAFF'>('STAFF');
+  const [activeTab, setActiveTab] = useState<'PROFILE' | 'STAFF'>(initialTab);
+
+  React.useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab, isOpen]);
   const [isWorkerModalOpen, setIsWorkerModalOpen] = useState(false);
   const [editingStaffId, setEditingStaffId] = useState<string | null>(null);
 
