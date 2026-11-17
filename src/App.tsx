@@ -1480,8 +1480,9 @@ export function App() {
                 className="bg-slate-800/80 hover:bg-slate-800 border border-slate-700 text-slate-100 px-3.5 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition active:scale-95 shrink-0 shadow-sm cursor-pointer"
               >
                 <Store className="w-4 h-4 text-blue-400 shrink-0" />
-                <span className="max-w-[140px] sm:max-w-[200px] truncate">
-                  {storeProfile.storeName} • {activeWorkerBadge}
+                <span className="max-w-[130px] sm:max-w-[200px] truncate">
+                  {storeProfile.storeName}
+                  <span className="hidden sm:inline"> • {activeWorkerBadge}</span>
                 </span>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               </button>
@@ -1634,7 +1635,7 @@ export function App() {
         )}
 
         {/* 3. Central POS Work Area (Pinned Headers/Footers, Scroll Containment) */}
-        <main className="flex-1 min-h-0 overflow-hidden flex flex-col pb-16">
+        <main className="flex-1 min-h-0 overflow-hidden overflow-x-hidden flex flex-col pb-16">
           {activeTab === 'REGISTER' && (
             <CashierRegister
               products={products}

@@ -229,7 +229,7 @@ export const PautangHub: React.FC<PautangHubProps> = React.memo(({
   };
 
   return (
-    <div className="w-full h-full flex flex-col md:flex-row overflow-hidden bg-background text-primary">
+    <div className="w-full h-full flex flex-col md:flex-row overflow-hidden overflow-x-hidden bg-background text-primary">
       {/* =========================================================================
           LEFT COLUMN: Directory, Search & Balance Pills (Desktop & Tablet >= 768px, or Mobile list)
          ========================================================================= */}

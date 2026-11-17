@@ -202,7 +202,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = React.memo(({
   };
 
   return (
-    <div className="w-full h-full flex flex-col overflow-y-auto bg-background text-primary p-4 md:p-6 space-y-6 pb-28 md:pb-8">
+    <div className="w-full h-full flex flex-col overflow-y-auto overflow-x-hidden bg-background text-primary p-4 md:p-6 space-y-6 pb-28 md:pb-8">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
         <div>
@@ -230,7 +230,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = React.memo(({
       </div>
 
       {/* 1. Multi-Column Responsive Dashboard Cards (Interactive KPI Blocks) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
         {/* Card 1: Gross Sales -> Drills down into Transaction Activity Log */}
         <div
           role="button"

@@ -418,7 +418,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
   };
 
   return (
-    <div className="flex flex-col md:flex-row w-full h-full overflow-hidden relative select-none bg-background text-primary">
+    <div className="flex flex-col md:flex-row w-full h-full overflow-hidden overflow-x-hidden relative select-none bg-background text-primary">
       {/* =========================================================================
           LEFT MAIN PANEL (flex-1): Utility & Category Tiles + Product Grid
          ========================================================================= */}
@@ -463,8 +463,8 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
               </button>
             </div>
           ) : (
-            <>
-              <div className="flex items-center gap-5 md:gap-6 overflow-x-auto no-scrollbar py-0.5">
+            <div className="relative flex-1 flex items-center min-w-0 overflow-hidden">
+              <div className="flex-1 flex items-center gap-5 md:gap-6 overflow-x-auto no-scrollbar flex-nowrap pr-10 py-0.5">
                 {categoryTabList.map((cat) => {
                   const isActive = activeCategory === cat.id;
                   const catTheme = CATEGORY_THEMES[cat.id] || CATEGORY_THEMES.all;
@@ -489,7 +489,7 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                 })}
               </div>
 
-              {/* Compact Search Icon */}
+              {/* Pinned Search Icon on the right edge */}
               <button
                 type="button"
                 onClick={() => {
@@ -497,11 +497,13 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                   setIsSearchOpen(true);
                 }}
                 title="Search products"
-                className="pb-2 pt-1 text-slate-500 hover:text-primary transition shrink-0 cursor-pointer p-1"
+                className="absolute right-0 top-1/2 -translate-y-1/2 pl-3 pr-1 py-1 bg-gradient-to-l from-surface via-surface/95 to-transparent text-slate-500 hover:text-primary transition shrink-0 cursor-pointer z-10"
               >
-                <Search className="w-4 h-4" />
+                <div className="p-1 rounded-md hover:bg-surface-muted transition">
+                  <Search className="w-4 h-4" />
+                </div>
               </button>
-            </>
+            </div>
           )}
         </div>
 
@@ -937,9 +939,9 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
       </aside>
 
       {/* =========================================================================
-          MOBILE VIEW (< 768px): Fixed Square-Style Bottom Bar + Expandable Ticket Drawer
+          MOBILE VIEW (< 768px): Sticky Floating Cart Bar + Slide-Up Ticket Drawer
          ========================================================================= */}
-      {cart.length > 0 && (
+      {cart.length > 0 ? (
         <div
           role="button"
           tabIndex={0}
@@ -950,31 +952,57 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
           onKeyDown={(e) => {
             if (e.key === 'Enter') setIsMobileDrawerOpen(true);
           }}
-          className="md:hidden fixed bottom-16 left-0 right-0 z-30 bg-surface border-t border-theme shadow-2xl cursor-pointer"
+          className="md:hidden fixed bottom-[68px] left-3 right-3 z-30 bg-slate-900/95 dark:bg-slate-800/95 text-white backdrop-blur-md border border-slate-700/80 shadow-2xl rounded-2xl p-2.5 sm:p-3 flex items-center justify-between cursor-pointer active:scale-[0.98] transition group"
         >
-          <div className="p-2.5 flex items-center justify-between gap-3">
-            {/* Left side: 🛒 5 items • ₱162.00 */}
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-base">🛒</span>
-              <span className="font-extrabold text-xs sm:text-sm text-primary truncate">
-                {totalItems} {totalItems === 1 ? 'item' : 'items'} • {formatPesoExact(subtotal)}
+          {/* Left: Item count badge + View Ticket */}
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <span className="w-6 h-6 rounded-full bg-[#006AFF] text-white font-mono font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
+              {totalItems}
+            </span>
+            <div className="flex items-center gap-1.5 truncate">
+              <span className="font-extrabold text-xs sm:text-sm text-white">
+                {totalItems} {totalItems === 1 ? 'item' : 'items'}
               </span>
-              <ChevronUp className="w-4 h-4 text-muted shrink-0" />
+              <span className="text-slate-400 text-xs">•</span>
+              <span className="text-xs font-semibold text-blue-400 group-hover:text-blue-300 transition flex items-center gap-0.5">
+                View Ticket
+                <ChevronUp className="w-3.5 h-3.5" />
+              </span>
             </div>
-
-            {/* Right side: [ Charge ₱162.00 → ] */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                triggerHapticFeedback('tap');
-                setIsMobileDrawerOpen(true);
-              }}
-              className="min-h-[44px] px-4 rounded-xl bg-[#006AFF] hover:bg-blue-600 active:scale-95 text-white font-black text-xs uppercase tracking-wide flex items-center gap-1.5 shrink-0 shadow-sm transition"
-            >
-              <span>{t('ticket.cash_charge')} {formatPesoExact(subtotal)} →</span>
-            </button>
           </div>
+
+          {/* Right: Live total */}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs sm:text-sm font-mono font-black text-white bg-white/10 px-2.5 py-1 rounded-xl">
+              {formatPesoExact(subtotal)}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            triggerHapticFeedback('tap');
+            setIsMobileDrawerOpen(true);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') setIsMobileDrawerOpen(true);
+          }}
+          className="md:hidden fixed bottom-[68px] left-3 right-3 z-30 bg-surface/85 backdrop-blur-md border border-theme shadow-sm rounded-xl py-2 px-3.5 flex items-center justify-between text-muted text-xs cursor-pointer opacity-70 hover:opacity-100 transition active:scale-[0.99]"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-sm">🛒</span>
+            <span className="font-semibold text-muted text-xs">Ticket Empty</span>
+            <span className="text-slate-400 dark:text-slate-600 text-[10px]">•</span>
+            <span className="text-[11px] text-muted flex items-center gap-0.5">
+              View Ticket
+              <ChevronUp className="w-3 h-3 opacity-60" />
+            </span>
+          </div>
+          <span className="font-mono font-bold text-xs text-muted">
+            ₱0.00
+          </span>
         </div>
       )}
 
@@ -983,91 +1011,146 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
         <div
           role="dialog"
           aria-modal="true"
-          className="md:hidden fixed inset-0 z-50 bg-black/60 flex flex-col justify-end backdrop-blur-sm"
+          className="md:hidden fixed inset-0 z-50 bg-black/70 flex flex-col justify-end backdrop-blur-sm animate-in fade-in duration-200"
         >
-          <div className="w-full max-h-[90vh] bg-surface rounded-t-2xl border-t border-theme flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-200">
+          <div className="w-full h-[90vh] max-h-[92vh] bg-surface rounded-t-3xl border-t border-theme flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-200">
+            {/* Grab Handle */}
+            <div className="pt-2 pb-1 flex justify-center shrink-0">
+              <div className="w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+            </div>
+
             {/* Drawer Header */}
-            <div className="p-3 border-b border-theme flex items-center justify-between bg-surface-muted">
-              <div>
-                <div className="font-extrabold text-sm text-primary">
-                  {t('ticket.title')} ({totalItems} {t('ticket.items')})
-                </div>
-                <div className="text-[11px] font-mono text-muted">
-                  {t('ticket.total')}: {formatPesoExact(subtotal)}
-                </div>
+            <div className="px-4 py-3 border-b border-theme flex items-center justify-between bg-surface-muted/50 shrink-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-black text-sm text-primary">
+                  {t('ticket.title')}
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 font-mono font-bold text-xs">
+                  {totalItems} {totalItems === 1 ? 'item' : 'items'}
+                </span>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsMobileDrawerOpen(false)}
-                className="w-8 h-8 rounded-lg bg-surface border border-theme flex items-center justify-center text-muted"
-              >
-                <X className="w-4 h-4" />
-              </button>
+
+              <div className="flex items-center gap-2">
+                {cart.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHapticFeedback('warning');
+                      onClearCart();
+                    }}
+                    className="text-xs font-bold text-red-600 dark:text-red-400 hover:underline flex items-center gap-1 cursor-pointer px-2 py-1"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{t('ticket.clear_all')}</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsMobileDrawerOpen(false)}
+                  className="w-8 h-8 rounded-xl bg-surface border border-theme flex items-center justify-center text-muted hover:text-primary active:scale-95 transition cursor-pointer"
+                  title="Close Ticket"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Scrollable list */}
-            <div className="flex-1 overflow-y-auto p-2 space-y-1 divide-y divide-theme">
-              {cart.map((item) => (
-                <div
-                  key={item.product.id}
-                  className="py-2.5 flex items-center justify-between gap-2"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold text-primary truncate">
-                      {item.product.shortName}
-                    </div>
-                    <div className="text-[11px] font-mono text-muted">
-                      {formatPeso(item.product.sellingPrice)} {t('ticket.each')}
-                    </div>
+            <div className="flex-1 overflow-y-auto p-3 divide-y divide-theme">
+              {cart.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center p-6 text-center text-muted space-y-3">
+                  <div className="w-14 h-14 rounded-2xl bg-surface-muted border border-theme flex items-center justify-center text-2xl shadow-inner">
+                    🛒
                   </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="flex items-center rounded-lg border border-theme bg-surface-muted">
-                      <button
-                        type="button"
-                        onClick={() => onDecrementProduct(item.product.id)}
-                        className="w-7 h-7 flex items-center justify-center"
-                      >
-                        <Minus className="w-3 h-3" />
-                      </button>
-                      <span className="w-6 text-center font-mono font-bold text-xs">
-                        {item.qty}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => onAddProduct(item.product)}
-                        className="w-7 h-7 flex items-center justify-center"
-                      >
-                        <Plus className="w-3 h-3" />
-                      </button>
-                    </div>
-
-                    <span className="font-mono font-black text-xs min-w-[50px] text-right">
-                      {formatPesoExact(item.product.sellingPrice * item.qty)}
-                    </span>
+                  <div>
+                    <p className="text-sm font-bold text-primary">{t('ticket.empty_title')}</p>
+                    <p className="text-xs text-muted mt-1">{t('ticket.empty_desc')}</p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    className="mt-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Back to Catalog</span>
+                  </button>
                 </div>
-              ))}
+              ) : (
+                cart.map((item) => (
+                  <div
+                    key={item.product.id}
+                    className="py-3 flex items-center justify-between gap-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs sm:text-sm font-bold text-primary truncate">
+                        {item.product.shortName}
+                      </div>
+                      <div className="text-[11px] font-mono text-muted mt-0.5">
+                        {formatPeso(item.product.sellingPrice)} × {item.qty} {getUnit(item.product.unit, item.qty)}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0">
+                      {/* Qty Steppers */}
+                      <div className="flex items-center rounded-xl border border-theme bg-surface-muted overflow-hidden shadow-xs">
+                        <button
+                          type="button"
+                          aria-label="Decrease quantity"
+                          onClick={() => {
+                            triggerHapticFeedback('tap');
+                            onDecrementProduct(item.product.id);
+                          }}
+                          className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 text-muted active:scale-95"
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="w-7 text-center font-mono font-bold text-xs text-primary">
+                          {item.qty}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label="Increase quantity"
+                          onClick={() => {
+                            triggerHapticFeedback('tap');
+                            onAddProduct(item.product);
+                          }}
+                          className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 text-primary active:scale-95"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Line Subtotal */}
+                      <span className="font-mono font-black text-xs sm:text-sm text-primary min-w-[56px] text-right">
+                        {formatPesoExact(item.product.sellingPrice * item.qty)}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
-            {/* Drawer Actions */}
-            <div className="p-3 border-t border-theme bg-surface space-y-2">
+            {/* Drawer Actions & Footer */}
+            <div className="p-4 border-t border-theme bg-surface space-y-3 shrink-0">
               <div className="flex items-baseline justify-between py-1">
-                <span className="text-xs font-bold text-muted uppercase">{t('ticket.total_due')}</span>
-                <span className="text-xl font-mono font-black text-primary">
+                <span className="text-xs font-black uppercase text-muted tracking-wider">
+                  {t('ticket.total_due')}
+                </span>
+                <span className="text-2xl font-mono font-black text-primary">
                   {formatPesoExact(subtotal)}
                 </span>
               </div>
 
-              {/* Primary CHARGE */}
+              {/* Primary CASH / CHARGE */}
               <button
                 type="button"
                 disabled={cart.length === 0 || !canCheckout}
                 onClick={() => {
+                  triggerHapticFeedback('tap');
                   setIsMobileDrawerOpen(false);
                   onOpenCashModal(null);
                 }}
-                className={`w-full min-h-[52px] rounded-xl font-black text-base uppercase tracking-wide flex items-center justify-center gap-2 shadow-sm transition active:scale-95 disabled:opacity-40 ${
+                className={`w-full min-h-[52px] rounded-xl font-black text-base uppercase tracking-wide flex items-center justify-center gap-2 shadow-sm transition active:scale-95 disabled:opacity-40 disabled:pointer-events-none ${
                   !canCheckout
                     ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
                     : 'bg-[#006AFF] hover:bg-blue-600 text-white'
@@ -1081,16 +1164,17 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                 </span>
               </button>
 
-              {/* Secondary Pautang */}
+              {/* Secondary CHARGE TO PAUTANG */}
               {canRecordPautang ? (
                 <button
                   type="button"
                   disabled={cart.length === 0}
                   onClick={() => {
+                    triggerHapticFeedback('tap');
                     setIsMobileDrawerOpen(false);
                     onOpenPautangModal();
                   }}
-                  className="w-full min-h-[44px] rounded-xl border-2 border-amber-500/70 hover:border-amber-500 bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 disabled:opacity-40 text-amber-700 dark:text-amber-400 font-extrabold text-xs uppercase tracking-wide flex items-center justify-center gap-2 transition"
+                  className="w-full min-h-[44px] rounded-xl border-2 border-amber-500/70 hover:border-amber-500 bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 disabled:opacity-40 disabled:pointer-events-none text-amber-700 dark:text-amber-400 font-extrabold text-xs uppercase tracking-wide flex items-center justify-center gap-2 transition"
                 >
                   <span>📒 {t('ticket.charge_pautang')}</span>
                 </button>
@@ -1099,6 +1183,16 @@ export const CashierRegister: React.FC<CashierRegisterProps> = React.memo(({
                   🔒 Pautang charging disabled for role
                 </div>
               )}
+
+              {/* Clear Back to Catalog Button */}
+              <button
+                type="button"
+                onClick={() => setIsMobileDrawerOpen(false)}
+                className="w-full py-2.5 rounded-xl border border-theme bg-surface-muted hover:bg-slate-200 dark:hover:bg-slate-800 text-primary font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Back to Catalog</span>
+              </button>
             </div>
           </div>
         </div>

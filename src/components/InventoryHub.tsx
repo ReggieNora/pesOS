@@ -187,7 +187,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
   };
 
   return (
-    <div className="w-full h-full flex flex-col md:flex-row overflow-hidden bg-background text-primary">
+    <div className="w-full h-full flex flex-col md:flex-row overflow-hidden overflow-x-hidden bg-background text-primary">
       {/* =========================================================================
           LEFT COLUMN: Search, Filters & Master Product List (w-80 to w-96)
          ========================================================================= */}
@@ -472,7 +472,7 @@ export const InventoryHub: React.FC<InventoryHubProps> = React.memo(({
             {/* Scrollable Detail Body */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {/* Snapshot Metric Cards (Square-style) */}
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="rounded-xl p-3 bg-surface-muted border border-theme">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted block">
                     {t('inventory.current_on_hand')}
